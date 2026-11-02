@@ -1,0 +1,581 @@
+/* ========================================================
+   スマスロ「L東京喰種」実戦記録アプリ スタイルシート
+   パチンコ店内（明るい照明環境）でも見やすい高コントラスト・ダークデザイン
+   スマートフォン片手操作最優先のUI
+   ======================================================== */
+
+:root {
+  --bg-primary: #121318;
+  --bg-secondary: #1c1e24;
+  --bg-card: #252830;
+  --bg-card-hover: #2e323c;
+  --text-main: #f0f2f5;
+  --text-muted: #9aa0a6;
+  --text-highlight: #ff4757;
+  --accent-red: #e84118;
+  --accent-red-hover: #c23616;
+  --accent-purple: #9c88ff;
+  --accent-blue: #00a8ff;
+  --accent-gold: #fbc531;
+  --accent-green: #4cd137;
+  --border-color: #383e4a;
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --safe-bottom: env(safe-area-inset-bottom, 16px);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  line-height: 1.5;
+  font-size: 15px;
+  overflow-x: hidden;
+  user-select: none;
+}
+
+/* アプリ全体レイアウト */
+#app {
+  max-width: 600px;
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background-color: var(--bg-primary);
+}
+
+/* ヘッダー */
+header {
+  background-color: var(--bg-secondary);
+  border-bottom: 2px solid var(--accent-red);
+  padding: 10px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.header-badge {
+  background-color: var(--accent-red);
+  color: #fff;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* 下部固定ナビゲーションバー */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-width: 600px;
+  margin: 0 auto;
+  background-color: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-around;
+  padding: 8px 4px calc(8px + var(--safe-bottom));
+  z-index: 100;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 2px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: bold;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.nav-item.active {
+  color: var(--text-highlight);
+}
+
+.nav-icon {
+  font-size: 1.25rem;
+  margin-bottom: 2px;
+}
+
+/* メインコンテンツエリア */
+main {
+  flex: 1;
+  padding: 12px 12px calc(80px + var(--safe-bottom));
+}
+
+.view-section {
+  display: none;
+}
+
+.view-section.active {
+  display: block;
+}
+
+/* カード共通 */
+.card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+}
+
+.card-title {
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 6px;
+}
+
+/* 現在の状況ヘッダー（G数・pt・状態） */
+.status-banner {
+  background: linear-gradient(135deg, #2b1b22, #1c1e24);
+  border: 2px solid var(--accent-red);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  text-align: center;
+  gap: 8px;
+}
+
+.status-item .label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: 2px;
+}
+
+.status-item .value {
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: #fff;
+}
+
+.status-item .value.state-highlight {
+  color: var(--accent-gold);
+  font-size: 1.15rem;
+}
+
+/* グリッド集計パネル */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.stat-box {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.stat-box .box-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.stat-box .box-main {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #fff;
+}
+
+.stat-box .box-sub {
+  font-size: 0.75rem;
+  color: var(--accent-blue);
+  margin-top: 2px;
+}
+
+/* 確定・示唆バナー */
+.shisa-banner {
+  border-left: 4px solid var(--accent-gold);
+  background-color: rgba(251, 197, 49, 0.1);
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+}
+
+.shisa-banner.kakutei {
+  border-left-color: var(--accent-red);
+  background-color: rgba(232, 65, 24, 0.15);
+  font-weight: bold;
+  color: #ff6b81;
+}
+
+/* クイック入力ボタン群 */
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.btn-quick {
+  background-color: var(--bg-card);
+  border: 2px solid var(--border-color);
+  color: #fff;
+  border-radius: 12px;
+  padding: 16px 12px;
+  font-size: 1.05rem;
+  font-weight: bold;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: transform 0.08s ease, background-color 0.15s ease;
+  min-height: 70px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.btn-quick:active {
+  transform: scale(0.96);
+  background-color: var(--bg-card-hover);
+}
+
+.btn-quick.primary {
+  border-color: var(--accent-red);
+  background: linear-gradient(145deg, #2a161b, #252830);
+}
+
+.btn-quick.rare {
+  border-color: var(--accent-purple);
+}
+
+.btn-quick.cz {
+  border-color: var(--accent-blue);
+}
+
+.btn-quick.at {
+  border-color: var(--accent-gold);
+}
+
+.btn-quick .btn-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* ゲーム数・ポイント簡易ステッパー */
+.stepper-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+}
+
+.stepper-label {
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: var(--text-muted);
+  width: 50px;
+}
+
+.stepper-val {
+  font-size: 1.2rem;
+  font-weight: bold;
+  min-width: 65px;
+  text-align: right;
+  color: #fff;
+}
+
+.stepper-btns {
+  display: flex;
+  gap: 6px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.btn-step {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: #fff;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.btn-step:active {
+  background-color: var(--accent-red);
+}
+
+/* 時系列イベントリスト */
+.timeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.timeline-item {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--border-color);
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.timeline-item.cz {
+  border-left-color: var(--accent-blue);
+}
+
+.timeline-item.at {
+  border-left-color: var(--accent-gold);
+}
+
+.timeline-item.seishin {
+  border-left-color: var(--accent-purple);
+}
+
+.timeline-item.rare {
+  border-left-color: var(--accent-green);
+}
+
+.timeline-meta {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.timeline-g {
+  font-weight: 800;
+  font-size: 1rem;
+  color: #fff;
+  min-width: 55px;
+}
+
+.timeline-pt {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.timeline-title {
+  font-size: 0.9rem;
+  font-weight: bold;
+  margin-top: 2px;
+}
+
+.timeline-desc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.timeline-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-icon {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1rem;
+  padding: 4px 6px;
+  cursor: pointer;
+}
+
+.btn-icon:hover {
+  color: #fff;
+}
+
+.btn-icon.delete:hover {
+  color: var(--accent-red);
+}
+
+/* モーダル */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(2px);
+  z-index: 1000;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.modal-overlay.active {
+  display: flex;
+}
+
+.modal-content {
+  background-color: var(--bg-secondary);
+  border-top: 2px solid var(--accent-red);
+  border-radius: 16px 16px 0 0;
+  width: 100%;
+  max-width: 600px;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 18px 16px calc(24px + var(--safe-bottom));
+  animation: slideUp 0.2s ease-out;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
+}
+
+.modal-title {
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+.btn-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+
+/* フォーム要素 */
+.form-group {
+  margin-bottom: 14px;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.form-control {
+  width: 100%;
+  padding: 10px 12px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--accent-red);
+}
+
+.btn-block {
+  width: 100%;
+  padding: 12px;
+  background-color: var(--accent-red);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.btn-block:active {
+  background-color: var(--accent-red-hover);
+}
+
+/* 選択ボタングリッド */
+.option-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.option-btn {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: #fff;
+  padding: 10px 8px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  cursor: pointer;
+  text-align: center;
+}
+
+.option-btn.selected {
+  border-color: var(--accent-red);
+  background-color: rgba(232, 65, 24, 0.2);
+  color: #ff6b81;
+}
+
+/* アラート・トースト */
+.toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(37, 40, 48, 0.95);
+  border: 1px solid var(--accent-red);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  z-index: 2000;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  display: none;
+}

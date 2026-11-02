@@ -1,0 +1,17 @@
+{
+  "name": "スマスロ L東京喰種 実戦記録・設定分析",
+  "short_name": "東京喰種実戦",
+  "description": "スマスロ「L東京喰種」専用の高精度実戦記録・設定判別・モード推測・AI連携Webアプリ",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#121318",
+  "theme_color": "#e84118",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23121318'/><circle cx='50' cy='50' r='38' fill='%23e84118'/><circle cx='50' cy='50' r='20' fill='%23121318'/><circle cx='50' cy='50' r='10' fill='%23ff4757'/></svg>",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
