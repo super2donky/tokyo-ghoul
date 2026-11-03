@@ -1125,39 +1125,67 @@ function モーダル表示_示唆演出_リッチ(g, pt, onAdd, onUndo, 初期�
       <button class="shisa-tab-btn" data-shisa-tab="tab-shisa-ed" style="flex:1;padding:6px 4px;border-radius:4px;border:1px solid var(--border-color);background:var(--bg-card);color:#fff;font-size:0.75rem;font-weight:bold;white-space:nowrap;cursor:pointer;">🎬 エンディングカード</button>
     </div>
 
-    <!-- 1. 月山招待状セクション（頻出が上、設定示唆は下） -->
+    <!-- 1. 月山招待状セクション（最頻出の基本・規定G数を上部に配置） -->
     <div id="tab-shisa-letter" class="shisa-tab-content" style="display:block;">
-      <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:8px;">下2桁50Gごとに出現する手紙のセリフを選択してください:</p>
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:8px;">下2桁50Gごと（50G・150G・250G…）に出現する手紙のセリフを選択:</p>
       
-      <div style="font-size:0.75rem;color:var(--text-muted);font-weight:bold;margin-bottom:4px;">▼ よく出る基本セリフ（最頻出）</div>
-      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+      <!-- ① 基本セリフ（最頻出） -->
+      <div style="font-size:0.75rem;color:var(--text-muted);font-weight:bold;margin-bottom:4px;">▼ 基本セリフ（デフォルト・最頻出）</div>
+      <div style="display:flex;gap:6px;margin-bottom:12px;">
         ${招待状リスト.filter(m => m.カテゴリ === "基本").map(m => `
-          <button class="option-btn btn-letter-select" data-id="${m.アイディ}" style="text-align:left;display:flex;justify-content:space-between;align-items:center;padding:8px 10px;">
-            <span style="font-weight:bold;">「${m.セリフ}」</span>
-            <span style="font-size:0.75rem;color:var(--text-muted);">${m.シサクブン}</span>
+          <button class="option-btn btn-letter-select" data-id="${m.アイディ}" style="flex:1;padding:10px 6px;text-align:center;">
+            <div style="font-weight:bold;font-size:0.85rem;">「${m.セリフ}」</div>
+            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">${m.シサクブン}</div>
           </button>
         `).join("")}
       </div>
 
-      <div style="font-size:0.75rem;color:var(--accent-blue);font-weight:bold;margin-bottom:4px;">▼ 規定ゲーム数・天井示唆セリフ</div>
+      <!-- ② 残り規定ゲーム数濃厚（大チャンス） -->
+      <div style="font-size:0.75rem;color:#ff6b81;font-weight:bold;margin-bottom:4px;">▼ 残り規定ゲーム数濃厚（大チャンス！）</div>
       <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
-        ${招待状リスト.filter(m => m.カテゴリ === "規定G数示唆").map(m => `
-          <button class="option-btn btn-letter-select" data-id="${m.アイディ}" style="text-align:left;display:flex;justify-content:space-between;align-items:center;padding:8px 10px;">
-            <span style="font-weight:bold;">「${m.セリフ}」</span>
+        ${招待状リスト.filter(m => m.カテゴリ === "規定G数濃厚").map(m => `
+          <button class="option-btn btn-letter-select" data-id="${m.アイディ}" style="text-align:left;display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-color:${m.カラーコード || '#ff6b81'};background:rgba(255,255,255,0.03);">
+            <div>
+              <span style="font-size:0.7rem;padding:1px 5px;border-radius:3px;border:1px solid ${m.カラーコード || '#ff6b81'};color:${m.カラーコード || '#ff6b81'};margin-right:6px;">${m.カラー}</span>
+              <span style="font-weight:bold;color:#fff;">「${m.セリフ}」</span>
+            </div>
+            <span style="font-size:0.75rem;color:${m.カラーコード || '#ff6b81'};font-weight:bold;">${m.シサクブン}</span>
+          </button>
+        `).join("")}
+      </div>
+
+      <!-- ③ 時刻・ゾーン示唆・天井否定（頻出） -->
+      <div style="font-size:0.75rem;color:var(--accent-blue);font-weight:bold;margin-bottom:4px;">▼ 時刻・ゾーン示唆・天井否定（青文字など）</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+        ${招待状リスト.filter(m => m.カテゴリ === "ゾーン示唆").map(m => `
+          <button class="option-btn btn-letter-select" data-id="${m.アイディ}" style="text-align:left;display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-color:var(--accent-blue);background:rgba(0,210,211,0.04);">
+            <div>
+              <span style="font-size:0.7rem;padding:1px 5px;border-radius:3px;border:1px solid var(--accent-blue);color:var(--accent-blue);margin-right:6px;">${m.カラー}</span>
+              <span style="font-weight:bold;color:#fff;">「${m.セリフ}」</span>
+            </div>
             <span style="font-size:0.75rem;color:var(--accent-gold);font-weight:bold;">${m.シサクブン}</span>
           </button>
         `).join("")}
       </div>
 
-      <div style="font-size:0.75rem;color:var(--accent-red);font-weight:bold;margin-bottom:4px;">▼ 設定確定・否定・示唆セリフ（稀）</div>
-      <div style="display:flex;flex-direction:column;gap:6px;">
+      <!-- ④ 設定示唆・否定・確定系（稀） -->
+      <div style="font-size:0.75rem;color:var(--accent-gold);font-weight:bold;margin-bottom:4px;">▼ 設定示唆・否定・確定（金文字・虹文字など）</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
         ${招待状リスト.filter(m => m.カテゴリ === "設定否定" || m.カテゴリ === "設定確定" || m.カテゴリ === "設定示唆").map(m => `
-          <button class="option-btn btn-letter-select" data-id="${m.アイディ}" style="text-align:left;display:flex;justify-content:space-between;align-items:center;padding:8px 10px;${m.カラー === '金文字' ? 'border-color:var(--accent-gold);background:rgba(251,197,49,0.1);' : (m.カラー === '虹文字' ? 'border-color:var(--accent-red);background:rgba(232,65,24,0.15);' : '')}">
-            <span style="font-weight:bold;">「${m.セリフ}」</span>
-            <span style="font-size:0.75rem;color:${m.カラー === '金文字' ? 'var(--accent-gold)' : (m.カラー === '虹文字' ? 'var(--accent-red)' : '#ff6b81')};font-weight:bold;">${m.シサクブン}</span>
+          <button class="option-btn btn-letter-select" data-id="${m.アイディ}" style="text-align:left;display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-color:${m.カラーコード || 'var(--accent-gold)'};background:rgba(255,255,255,0.03);">
+            <div>
+              <span style="font-size:0.7rem;padding:1px 5px;border-radius:3px;border:1px solid ${m.カラーコード || 'var(--accent-gold)'};color:${m.カラーコード || 'var(--accent-gold)'};margin-right:6px;">${m.カラー}</span>
+              <span style="font-weight:bold;color:#fff;">「${m.セリフ}」</span>
+            </div>
+            <span style="font-size:0.75rem;color:${m.カラーコード || 'var(--accent-gold)'};font-weight:bold;">${m.シサクブン}</span>
           </button>
         `).join("")}
       </div>
+
+      <!-- ⑤ その他・自由手入力ボタン -->
+      <button id="btn-custom-letter" style="width:100%;padding:8px;border-radius:6px;border:1px dashed var(--border-color);background:transparent;color:var(--text-muted);font-size:0.75rem;cursor:pointer;">
+        ✏️ 上記以外のセリフ・内容を自由入力して記録
+      </button>
     </div>
 
     <!-- 2. アイキャッチセクション（頻出が上、示唆・激アツは下） -->
@@ -1332,7 +1360,7 @@ function モーダル表示_示唆演出_リッチ(g, pt, onAdd, onUndo, 初期�
             ポイント数: pt,
             状態: ジョウタイ.通常,
             種別: イベント種別.示唆演出,
-            タイトル: `月山招待状: 「${m.セリフ}」`,
+            タイトル: `月山招待状: 「${m.セリフ}」 [${m.シサクブン}]`,
             詳細: {
               演出名: "月山招待状",
               セリフ: m.セリフ,
@@ -1345,6 +1373,28 @@ function モーダル表示_示唆演出_リッチ(g, pt, onAdd, onUndo, 初期�
         }
         閉じるモーダル();
       });
+    });
+
+    // 1-b. 招待状 自由入力
+    modalEl.querySelector("#btn-custom-letter")?.addEventListener("click", () => {
+      振動フィードバック(40);
+      const 入力セリフ = prompt("手紙のセリフや内容を入力してください（例: 1時35分、青文字、など）:");
+      if (入力セリフ && 入力セリフ.trim()) {
+        const 入力示唆 = prompt("示唆内容がわかる場合は入力してください（空欄でも可）:", "") || "手入力記録";
+        onAdd(シンキ_イベント作成({
+          通常ゲーム数: g,
+          ポイント数: pt,
+          状態: ジョウタイ.通常,
+          種別: イベント種別.示唆演出,
+          タイトル: `月山招待状: 「${入力セリフ.trim()}」`,
+          詳細: {
+            演出名: "月山招待状",
+            セリフ: 入力セリフ.trim(),
+            示唆: 入力示唆
+          }
+        }));
+        閉じるモーダル();
+      }
     });
 
     // 2. アイキャッチ選択

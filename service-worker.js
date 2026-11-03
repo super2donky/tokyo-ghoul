@@ -2,7 +2,7 @@
  * サービスワーカー（オフライン動作・キャッシュ管理）
  */
 
-const キャッシュ名 = "tokyo-ghoul-cache-v20261029-0418";
+const キャッシュ名 = "tokyo-ghoul-cache-v20261103-0929";
 const キャッシュ対象 = [
   "./",
   "./index.html",
