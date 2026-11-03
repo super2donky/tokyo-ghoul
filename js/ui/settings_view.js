@@ -89,6 +89,19 @@ export async function 設定画面_レンダリング(コンテナ, セッショ
       <button class="btn-block" id="btn-save-snapshot" style="background:var(--accent-blue);">引き継ぎ初期値を反映</button>
     </div>
 
+    <!-- アプリ更新・キャッシュクリア -->
+    <div class="card" style="border:1px solid var(--accent-blue);">
+      <div class="card-title">
+        <span>🔄 アプリバージョン更新・キャッシュクリア</span>
+      </div>
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:10px;">
+        招待状や示唆データが更新された際、端末内の古い一時データ（キャッシュ）を消去して最新版を取得します。（※入力済みの実戦データは消えません）
+      </p>
+      <button class="btn-block" id="btn-force-update-app" style="background:var(--accent-blue);margin:0;">
+        🔄 最新バージョンを再取得（強制更新）
+      </button>
+    </div>
+
     <!-- 実戦セッション一覧・切り替え -->
     <div class="card">
       <div class="card-title">
@@ -273,6 +286,26 @@ export async function 設定画面_レンダリング(コンテナ, セッショ
         セッション切り替えコールバック(s);
       }
     });
+  });
+
+  // アプリ強制更新
+  コンテナ.querySelector("#btn-force-update-app")?.addEventListener("click", async () => {
+    振動フィードバック();
+    if (confirm("端末のキャッシュを消去して、最新の招待状・演出データを読み込みますか？\n（※入力中の実戦データは消えません）")) {
+      try {
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.unregister()));
+        }
+      } catch (err) {
+        console.error("キャッシュ削除エラー:", err);
+      }
+      window.location.reload(true);
+    }
   });
 
   // セッション削除

@@ -1,8 +1,8 @@
 /**
- * サービスワーカー（オフライン動作・キャッシュ管理）
+ * サービスワーカー（ネットワーク優先＋オフラインキャッシュフォールバック）
  */
 
-const キャッシュ名 = "tokyo-ghoul-cache-v20261103-0929";
+const キャッシュ名 = "tokyo-ghoul-cache-v20261103-1015";
 const キャッシュ対象 = [
   "./",
   "./index.html",
@@ -21,16 +21,17 @@ const キャッシュ対象 = [
   "./js/ui/settings_view.js"
 ];
 
-// インストール処理
+// インストール（即座に待機状態をスキップしてアクティベートへ）
 self.addEventListener("install", (イベント) => {
+  self.skipWaiting();
   イベント.waitUntil(
     caches.open(キャッシュ名).then((キャッシュ) => {
       return キャッシュ.addAll(キャッシュ対象);
-    }).then(() => self.skipWaiting())
+    })
   );
 });
 
-// アクティベート処理（古いキャッシュの削除）
+// アクティベート（古いバージョンのキャッシュを完全削除し、即時制御）
 self.addEventListener("activate", (イベント) => {
   イベント.waitUntil(
     caches.keys().then((キー群) => {
@@ -41,26 +42,24 @@ self.addEventListener("activate", (イベント) => {
   );
 });
 
-// フェッチ処理（キャッシュ優先フォールバック）
+// フェッチ（ネットワーク優先：オンライン時は最新を取得、圏外・オフライン時はキャッシュから即答）
 self.addEventListener("fetch", (イベント) => {
   if (イベント.request.method !== "GET") return;
 
   イベント.respondWith(
-    caches.match(イベント.request).then((キャッシュ応答) => {
-      if (キャッシュ応答) {
-        return キャッシュ応答;
-      }
-      return fetch(イベント.request).then((ネットワーク応答) => {
-        if (!ネットワーク応答 || ネットワーク応答.status !== 200 || ネットワーク応答.type !== "basic") {
-          return ネットワーク応答;
-        }
-        const 応答クローン = ネットワーク応答.clone();
+    fetch(イベント.request).then((ネットワーク応答) => {
+      if (ネットワーク応答 && ネットワーク応答.status === 200) {
+        const クローン = ネットワーク応答.clone();
         caches.open(キャッシュ名).then((キャッシュ) => {
-          キャッシュ.put(イベント.request, 応答クローン);
+          キャッシュ.put(イベント.request, クローン);
         });
-        return ネットワーク応答;
-      }).catch(() => {
-        // オフライン時のフォールバック
+      }
+      return ネットワーク応答;
+    }).catch(() => {
+      return caches.match(イベント.request).then((キャッシュ応答) => {
+        if (キャッシュ応答) {
+          return キャッシュ応答;
+        }
         return caches.match("./index.html");
       });
     })
