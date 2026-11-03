@@ -234,14 +234,12 @@ function セットアップ_イベントリスナー(コンテナ, 初期G, 初�
     });
   });
 
-  // 0リセットボタン
+  // 0リセットボタン（確認画面を完全撤廃しワンタップで即時0リセット）
   コンテナ.querySelector("#btn-reset-gp")?.addEventListener("click", () => {
     振動フィードバック(40);
-    if (confirm("現在のゲーム数とポイントを 0 にリセットしますか？\n（CZ当選後やAT終了後の新区間スタート時などに使用します）")) {
-      現在G = 0;
-      現在pt = 0;
-      画面更新();
-    }
+    現在G = 0;
+    現在pt = 0;
+    画面更新();
   });
 
   function リセットGP() {
@@ -1190,23 +1188,52 @@ function モーダル表示_CZ突入(g, pt, onAdd) {
 }
 
 function モーダル表示_AT直撃(g, pt, onAdd) {
+  const ゾーン一覧 = ["50G", "100G", "150G", "200G", "250G", "300G", "400G", "500G", "600G"];
+  let 推定ゾーン = "100G";
+  if (g <= 75) 推定ゾーン = "50G";
+  else if (g <= 125) 推定ゾーン = "100G";
+  else if (g <= 175) 推定ゾーン = "150G";
+  else if (g <= 225) 推定ゾーン = "200G";
+  else if (g <= 275) 推定ゾーン = "250G";
+  else if (g <= 350) 推定ゾーン = "300G";
+  else if (g <= 450) 推定ゾーン = "400G";
+  else if (g <= 550) 推定ゾーン = "500G";
+  else 推定ゾーン = "600G";
+
   const html = `
     <div class="modal-header">
       <div class="modal-title">👑 AT直撃 / AT間天井 / エピボ</div>
       <button class="btn-close" id="modal-close">&times;</button>
     </div>
-    <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:12px;">突入契機を選択してください（記録後にG数・ptは自動で0にリセットされます）:</p>
+    <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:12px;">突入契機を選択してください（記録後にG数・ptは自動で0リセットされます）:</p>
     <div class="option-grid" style="margin-bottom:14px;gap:8px;">
-      <button class="option-btn at-chokugeki-opt" data-keiki="${トウセン_ケイキ.AT直撃}" data-epibo="false" style="padding:14px 8px;display:flex;flex-direction:column;align-items:center;">
-        <span style="font-weight:bold;font-size:1rem;color:#ff6b81;">👑 レア役直撃</span>
-        <span style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">特大設定差（複数回で高設定期待度大幅UP）</span>
+      <!-- リプレイ直撃 -->
+      <button class="option-btn at-chokugeki-opt" data-type="replay" style="grid-column:span 2;padding:14px 8px;border-color:#00a8ff;background:rgba(0, 168, 255, 0.15);display:flex;flex-direction:column;align-items:center;">
+        <span style="font-weight:bold;font-size:1.05rem;color:#00a8ff;">🔁 リプレイ直撃AT</span>
+        <span style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">通常時リプレイからの直撃当選（特大設定差！高設定濃厚挙動）</span>
       </button>
-      <button class="option-btn at-chokugeki-opt" data-keiki="${トウセン_ケイキ.AT直撃}" data-epibo="true" style="padding:14px 8px;border-color:var(--accent-purple);display:flex;flex-direction:column;align-items:center;">
-        <span style="font-weight:bold;font-size:1rem;color:#dcdde1;">✨ エピソードボーナス</span>
-        <span style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">エピボ経由でAT突入</span>
+
+      <!-- 規定ゾーン直撃 -->
+      <button class="option-btn at-chokugeki-opt" data-type="zone" style="grid-column:span 2;padding:12px 8px;border-color:#ff9f43;background:rgba(255, 159, 67, 0.12);display:flex;flex-direction:column;align-items:center;">
+        <span style="font-weight:bold;font-size:0.95rem;color:#ff9f43;">🎯 規定ゾーン直撃 (${推定ゾーン}ゾーン)</span>
+        <span style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">モード規定ゾーン到達によるAT直撃当選</span>
       </button>
-      <button class="option-btn at-chokugeki-opt" data-keiki="${トウセン_ケイキ.天井契機}" data-epibo="false" style="grid-column:span 2;padding:16px 8px;border-color:var(--accent-gold);display:flex;flex-direction:column;align-items:center;">
-        <span style="font-weight:bold;font-size:1.05rem;color:var(--accent-gold);">⏰ AT間天井（最大1200G+α到達）</span>
+
+      <!-- エピボ（確定チェリー） -->
+      <button class="option-btn at-chokugeki-opt" data-type="epibo-cherry" style="padding:14px 8px;border-color:var(--accent-red);background:rgba(232, 65, 24, 0.15);display:flex;flex-direction:column;align-items:center;">
+        <span style="font-weight:bold;font-size:0.95rem;color:#ff4757;">🍒 確定チェリー エピボ</span>
+        <span style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">確定役契機エピソードボーナス</span>
+      </button>
+
+      <!-- エピボ（規定ポイント） -->
+      <button class="option-btn at-chokugeki-opt" data-type="epibo-point" style="padding:14px 8px;border-color:var(--accent-purple);background:rgba(156, 136, 255, 0.15);display:flex;flex-direction:column;align-items:center;">
+        <span style="font-weight:bold;font-size:0.95rem;color:#dcdde1;">🎬 規定pt当選 エピボ</span>
+        <span style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">規定ポイント・ゾーン到達時の一部</span>
+      </button>
+
+      <!-- AT間天井 -->
+      <button class="option-btn at-chokugeki-opt" data-type="ceiling" style="grid-column:span 2;padding:14px 8px;border-color:var(--accent-gold);display:flex;flex-direction:column;align-items:center;">
+        <span style="font-weight:bold;font-size:1rem;color:var(--accent-gold);">🚨 AT間天井（最大1200G+α到達）</span>
         <span style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">AT間最大1200G消化による救済天井発動</span>
       </button>
     </div>
@@ -1215,12 +1242,26 @@ function モーダル表示_AT直撃(g, pt, onAdd) {
     modalEl.querySelectorAll(".at-chokugeki-opt").forEach(btn => {
       btn.addEventListener("click", () => {
         振動フィードバック(40);
-        const 契機 = btn.getAttribute("data-keiki");
-        const エピボ = btn.getAttribute("data-epibo") === "true";
-        let タイトル = `AT突入 (${契機})`;
-        if (エピボ) タイトル = "エピソードボーナス突入！";
-        else if (契機 === トウセン_ケイキ.天井契機) タイトル = "AT突入（AT間天井1200G）";
-        else if (契機 === トウセン_ケイキ.AT直撃) タイトル = "AT直撃当選！";
+        const type = btn.getAttribute("data-type");
+        let タイトル = "";
+        let 詳細 = {};
+
+        if (type === "replay") {
+          タイトル = "AT直撃当選！ (リプレイ契機・特大設定差)";
+          詳細 = { 当選契機: "リプレイ", 契機: "リプレイ", 役: "リプレイ", エピソードボーナス: false };
+        } else if (type === "zone") {
+          タイトル = `AT直撃当選！ (${推定ゾーン}ゾーン規定pt契機)`;
+          詳細 = { 当選契機: "規定ゲーム数", 契機: "規定ゲーム数", ゾーン: 推定ゾーン, エピソードボーナス: false };
+        } else if (type === "epibo-cherry") {
+          タイトル = "エピソードボーナス当選！ (確定チェリー契機) → AT突入";
+          詳細 = { 当選契機: "確定チェリー", 契機: "確定チェリー", 役: "確定チェリー", エピソードボーナス: true };
+        } else if (type === "epibo-point") {
+          タイトル = `エピソードボーナス当選！ (${推定ゾーン}ゾーン規定pt契機) → AT突入`;
+          詳細 = { 当選契機: "規定ゲーム数", 契機: "規定ゲーム数", ゾーン: 推定ゾーン, エピソードボーナス: true };
+        } else {
+          タイトル = "AT間天井到達！ (最大1200G+α救済発動)";
+          詳細 = { 当選契機: トウセン_ケイキ.天井契機, 契機: トウセン_ケイキ.天井契機, エピソードボーナス: false };
+        }
 
         onAdd(シンキ_イベント作成({
           通常ゲーム数: g,
@@ -1228,7 +1269,7 @@ function モーダル表示_AT直撃(g, pt, onAdd) {
           状態: ジョウタイ.AT中,
           種別: イベント種別.AT開始,
           タイトル,
-          詳細: { 契機, エピソードボーナス: エピボ }
+          詳細
         }));
         閉じるモーダル();
       });

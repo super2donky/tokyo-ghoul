@@ -84,7 +84,8 @@ export function 履歴画面_レンダリング(コンテナ, セッション, �
             <div class="timeline-title">${ev.タイトル}</div>
             ${詳細文字 ? `<div class="timeline-desc">${詳細文字}</div>` : ""}
           </div>
-          <div class="timeline-actions">
+          <div class="timeline-actions" style="display:flex;gap:4px;align-items:center;">
+            <button class="btn-icon btn-insert-event" data-event-id="${ev.イベントID}" title="この直後に割り込み挿入" style="background:rgba(76, 209, 55, 0.2);border:1px solid #4cd137;color:#4cd137;font-size:0.8rem;padding:4px 6px;">➕</button>
             <button class="btn-icon btn-edit-event" data-event-id="${ev.イベントID}" title="編集">✏️</button>
             <button class="btn-icon delete btn-delete-event" data-event-id="${ev.イベントID}" title="削除">🗑️</button>
           </div>
@@ -132,6 +133,26 @@ export function 履歴画面_レンダリング(コンテナ, セッション, �
         セッション.イベントリスト.forEach((e, idx) => { e.連番 = idx + 1; });
         イベント更新コールバック(セッション);
       }
+    });
+  });
+
+  // 割り込み挿入ボタンのハンドラ（入力忘れ対応）
+  コンテナ.querySelectorAll(".btn-insert-event").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-event-id");
+      const 基準イベント = セッション.イベントリスト.find(e => e.イベントID === id);
+      if (!基準イベント) return;
+
+      モーダル表示_割り込み挿入(基準イベント, セッション, (新規イベント) => {
+        const targetIndex = セッション.イベントリスト.findIndex(e => e.イベントID === id);
+        if (targetIndex !== -1) {
+          // 該当位置の直後に splice で割り込み挿入！
+          セッション.イベントリスト.splice(targetIndex + 1, 0, 新規イベント);
+          // 連番を再付与
+          セッション.イベントリスト.forEach((e, idx) => { e.連番 = idx + 1; });
+          イベント更新コールバック(セッション);
+        }
+      });
     });
   });
 
@@ -256,5 +277,137 @@ function モーダル表示_手動イベント追加(セッション, onAdd) {
 
     overlay.classList.remove("active");
     onAdd(新イベント);
+  });
+}
+
+function モーダル表示_割り込み挿入(基準イベント, セッション, onInsert) {
+  const overlay = document.getElementById("global-modal-overlay");
+  const content = document.getElementById("global-modal-content");
+  if (!overlay || !content) return;
+
+  const defaultG = 基準イベント.通常ゲーム数 !== undefined ? 基準イベント.通常ゲーム数 : 0;
+  const defaultPt = 基準イベント.ポイント数 !== undefined ? 基準イベント.ポイント数 : 0;
+  const defaultState = 基準イベント.状態 || "通常";
+
+  const templates = [
+    { label: "特化: BITES", title: "特化ゾーン: BITES", state: "AT中", type: イベント種別.AT中イベント, detail: { 特化種別: "BITES" } },
+    { label: "特化: 極BITES", title: "特化ゾーン: 極BITES", state: "AT中", type: イベント種別.AT中イベント, detail: { 特化種別: "極BITES" } },
+    { label: "有馬ジャッジ成功", title: "有馬ジャッジメント成功！", state: "AT中", type: イベント種別.AT中イベント, detail: { 結果: "成功" } },
+    { label: "有馬ジャッジ失敗", title: "有馬ジャッジメント失敗", state: "AT中", type: イベント種別.AT中イベント, detail: { 結果: "失敗" } },
+    { label: "スイカ成立", title: "レア役成立: スイカ", state: defaultState, type: イベント種別.レア役成立, detail: { 役: "スイカ" } },
+    { label: "強チェリー成立", title: "レア役成立: 強チェリー", state: defaultState, type: イベント種別.レア役成立, detail: { 役: "強チェリー" } },
+    { label: "チャンス目成立", title: "レア役成立: チャンス目", state: defaultState, type: イベント種別.レア役成立, detail: { 役: "チャンス目" } },
+    { label: "前兆あり", title: "前兆発生（ガセ含む）", state: "通常", type: イベント種別.前兆発生, detail: { 前兆発生: true } },
+    { label: "アイキャッチ", title: "アイキャッチ確認", state: "通常", type: イベント種別.示唆演出, detail: { 演出名: "アイキャッチ" } },
+    { label: "ナミちゃんトロフィー", title: "ナミちゃんトロフィー出現", state: "AT終了", type: イベント種別.確定系演出, detail: { 演出名: "トロフィー・枚数" } }
+  ];
+
+  content.innerHTML = `
+    <div class="modal-header">
+      <div class="modal-title">➕ 履歴の途中挿入（入力忘れ追加）</div>
+      <button class="btn-close" id="modal-close">&times;</button>
+    </div>
+
+    <div style="background:rgba(76, 209, 55, 0.1);border:1px solid #4cd137;padding:8px 10px;border-radius:6px;margin-bottom:12px;font-size:0.8rem;color:#4cd137;">
+      📍 基準: <strong>#${基準イベント.連番} 【${defaultG}G: ${基準イベント.タイトル}】</strong> の直後に割り込みます
+    </div>
+
+    <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:6px;">よくある入力忘れテンプレート（タップで自動入力）:</p>
+    <div class="option-grid" style="grid-template-columns:repeat(2, 1fr);gap:6px;margin-bottom:12px;">
+      ${templates.map((t, idx) => `
+        <button class="option-btn insert-tpl-btn" data-idx="${idx}" style="padding:8px 6px;font-size:0.8rem;text-align:left;">
+          ${t.label}
+        </button>
+      `).join("")}
+    </div>
+
+    <div class="form-group" style="margin-bottom:8px;">
+      <label class="form-label">イベントタイトル / 内容</label>
+      <input type="text" class="form-control" id="insert-title" placeholder="例: 特化ゾーン: BITES、前兆開始 等">
+    </div>
+
+    <div style="display:flex;gap:8px;margin-bottom:8px;">
+      <div class="form-group" style="flex:1;margin-bottom:0;">
+        <label class="form-label">ゲーム数 (G)</label>
+        <input type="number" class="form-control" id="insert-g" value="${defaultG}">
+      </div>
+      <div class="form-group" style="flex:1;margin-bottom:0;">
+        <label class="form-label">ポイント (pt)</label>
+        <input type="number" class="form-control" id="insert-pt" value="${defaultPt}">
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:14px;">
+      <label class="form-label">状態</label>
+      <select class="form-control" id="insert-state">
+        <option value="通常" ${defaultState === '通常' ? 'selected' : ''}>通常</option>
+        <option value="CZ中" ${defaultState === 'CZ中' ? 'selected' : ''}>CZ中</option>
+        <option value="AT中" ${defaultState === 'AT中' ? 'selected' : ''}>AT中</option>
+        <option value="引き戻し確認中" ${defaultState === '引き戻し確認中' ? 'selected' : ''}>引き戻し確認中</option>
+        <option value="AT終了" ${defaultState === 'AT終了' ? 'selected' : ''}>AT終了</option>
+      </select>
+    </div>
+
+    <button class="btn-block" id="btn-submit-insert" style="background:#4cd137;color:#000;font-weight:bold;padding:14px;">
+      ➕ この位置に挿入する
+    </button>
+  `;
+
+  overlay.classList.add("active");
+  content.querySelector("#modal-close")?.addEventListener("click", () => overlay.classList.remove("active"));
+
+  let 選択テンプレート = null;
+  content.querySelectorAll(".insert-tpl-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      content.querySelectorAll(".insert-tpl-btn").forEach(b => b.classList.remove("selected"));
+      btn.classList.add("selected");
+      const idx = parseInt(btn.getAttribute("data-idx"), 10);
+      選択テンプレート = templates[idx];
+      content.querySelector("#insert-title").value = 選択テンプレート.title;
+      content.querySelector("#insert-state").value = 選択テンプレート.state;
+    });
+  });
+
+  content.querySelector("#btn-submit-insert")?.addEventListener("click", () => {
+    const title = content.querySelector("#insert-title").value.trim();
+    if (!title) {
+      alert("イベントタイトルを入力してください");
+      return;
+    }
+
+    const g = parseInt(content.querySelector("#insert-g").value, 10) || 0;
+    const pt = parseInt(content.querySelector("#insert-pt").value, 10) || 0;
+    const state = content.querySelector("#insert-state").value;
+
+    // 前後のイベントのタイムスタンプの中間に設定して時系列を整頓
+    const 前時刻 = イベント時刻取得(基準イベント);
+    const targetIdx = セッション.イベントリスト.findIndex(e => e.イベントID === 基準イベント.イベントID);
+    const 次イベント = (targetIdx !== -1 && targetIdx + 1 < セッション.イベントリスト.length)
+      ? セッション.イベントリスト[targetIdx + 1]
+      : null;
+
+    let 挿入時刻 = 前時刻 + 10;
+    if (次イベント) {
+      const 次時刻 = イベント時刻取得(次イベント);
+      if (次時刻 > 前時刻) {
+        挿入時刻 = Math.floor((前時刻 + 次時刻) / 2);
+      }
+    }
+
+    const 種別 = 選択テンプレート ? 選択テンプレート.type : イベント種別.メモ記録;
+    const 詳細 = 選択テンプレート ? { ...選択テンプレート.detail, 手動割り込み挿入: true } : { 手動割り込み挿入: true };
+
+    const 新規イベント = シンキ_イベント作成({
+      通常ゲーム数: g,
+      ポイント数: pt,
+      状態: state,
+      種別,
+      タイトル: title,
+      詳細
+    });
+    新規イベント.タイムスタンプ = 挿入時刻;
+
+    overlay.classList.remove("active");
+    onInsert(新規イベント);
   });
 }
