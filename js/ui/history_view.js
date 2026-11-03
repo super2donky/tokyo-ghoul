@@ -85,7 +85,7 @@ export function 履歴画面_レンダリング(コンテナ, セッション, �
             ${詳細文字 ? `<div class="timeline-desc">${詳細文字}</div>` : ""}
           </div>
           <div class="timeline-actions" style="display:flex;gap:4px;align-items:center;">
-            <button class="btn-icon btn-insert-event" data-event-id="${ev.イベントID}" title="この直後に割り込み挿入" style="background:rgba(76, 209, 55, 0.2);border:1px solid #4cd137;color:#4cd137;font-size:0.8rem;padding:4px 6px;">➕</button>
+            <button class="btn-icon btn-insert-event" data-event-id="${ev.イベントID}" title="この前後にイベントを挿入" style="background:rgba(76, 209, 55, 0.15);border:1px solid #4cd137;color:#4cd137;font-size:0.75rem;padding:4px 8px;font-weight:bold;border-radius:4px;">➕挿入</button>
             <button class="btn-icon btn-edit-event" data-event-id="${ev.イベントID}" title="編集">✏️</button>
             <button class="btn-icon delete btn-delete-event" data-event-id="${ev.イベントID}" title="削除">🗑️</button>
           </div>
@@ -304,18 +304,32 @@ function モーダル表示_割り込み挿入(基準イベント, セッショ�
 
   content.innerHTML = `
     <div class="modal-header">
-      <div class="modal-title">➕ 履歴の途中挿入（入力忘れ追加）</div>
+      <div class="modal-title">➕ 履歴の途中割り込み挿入</div>
       <button class="btn-close" id="modal-close">&times;</button>
     </div>
 
-    <div style="background:rgba(76, 209, 55, 0.1);border:1px solid #4cd137;padding:8px 10px;border-radius:6px;margin-bottom:12px;font-size:0.8rem;color:#4cd137;">
-      📍 基準: <strong>#${基準イベント.連番} 【${defaultG}G: ${基準イベント.タイトル}】</strong> の直後に割り込みます
+    <!-- 挿入方向の選択スイッチ（上か下か） -->
+    <div style="margin-bottom:12px;">
+      <label class="form-label" style="font-weight:bold;">挿入する位置を選択:</label>
+      <div style="display:flex;gap:8px;">
+        <button type="button" class="option-btn dir-btn selected" id="btn-dir-after" data-dir="after" style="flex:1;padding:10px;font-weight:bold;border-color:#4cd137;background:rgba(76, 209, 55, 0.2);">
+          ⬇️ 直後（下）に挿入
+        </button>
+        <button type="button" class="option-btn dir-btn" id="btn-dir-before" data-dir="before" style="flex:1;padding:10px;font-weight:bold;">
+          ⬆️ 直前（上）に挿入
+        </button>
+      </div>
+    </div>
+
+    <!-- 基準位置の明示ボックス -->
+    <div id="insert-guide-box" style="background:rgba(76, 209, 55, 0.1);border:1px solid #4cd137;padding:10px;border-radius:6px;margin-bottom:12px;font-size:0.85rem;color:#4cd137;">
+      ⬇️ <strong>【#${基準イベント.連番} ${defaultG}G: ${基準イベント.タイトル}】</strong> の<strong>【すぐ下】</strong>に割り込みます
     </div>
 
     <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:6px;">よくある入力忘れテンプレート（タップで自動入力）:</p>
     <div class="option-grid" style="grid-template-columns:repeat(2, 1fr);gap:6px;margin-bottom:12px;">
       ${templates.map((t, idx) => `
-        <button class="option-btn insert-tpl-btn" data-idx="${idx}" style="padding:8px 6px;font-size:0.8rem;text-align:left;">
+        <button type="button" class="option-btn insert-tpl-btn" data-idx="${idx}" style="padding:8px 6px;font-size:0.8rem;text-align:left;">
           ${t.label}
         </button>
       `).join("")}
@@ -348,13 +362,47 @@ function モーダル表示_割り込み挿入(基準イベント, セッショ�
       </select>
     </div>
 
-    <button class="btn-block" id="btn-submit-insert" style="background:#4cd137;color:#000;font-weight:bold;padding:14px;">
+    <button class="btn-block" id="btn-submit-insert" style="background:#4cd137;color:#000;font-weight:bold;padding:14px;font-size:1rem;">
       ➕ この位置に挿入する
     </button>
   `;
 
   overlay.classList.add("active");
   content.querySelector("#modal-close")?.addEventListener("click", () => overlay.classList.remove("active"));
+
+  let 選択方向 = "after"; // "after" = 下, "before" = 上
+  const guideBox = content.querySelector("#insert-guide-box");
+  const btnAfter = content.querySelector("#btn-dir-after");
+  const btnBefore = content.querySelector("#btn-dir-before");
+
+  function 更新ガイド() {
+    if (選択方向 === "after") {
+      btnAfter.classList.add("selected");
+      btnAfter.style.background = "rgba(76, 209, 55, 0.2)";
+      btnAfter.style.borderColor = "#4cd137";
+      btnBefore.classList.remove("selected");
+      btnBefore.style.background = "";
+      btnBefore.style.borderColor = "";
+      guideBox.innerHTML = `⬇️ <strong>【#${基準イベント.連番} ${defaultG}G: ${基準イベント.タイトル}】</strong> の<strong>【すぐ下（直後）】</strong>に割り込みます`;
+    } else {
+      btnBefore.classList.add("selected");
+      btnBefore.style.background = "rgba(76, 209, 55, 0.2)";
+      btnBefore.style.borderColor = "#4cd137";
+      btnAfter.classList.remove("selected");
+      btnAfter.style.background = "";
+      btnAfter.style.borderColor = "";
+      guideBox.innerHTML = `⬆️ <strong>【#${基準イベント.連番} ${defaultG}G: ${基準イベント.タイトル}】</strong> の<strong>【すぐ上（直前）】</strong>に割り込みます`;
+    }
+  }
+
+  btnAfter.addEventListener("click", () => {
+    選択方向 = "after";
+    更新ガイド();
+  });
+  btnBefore.addEventListener("click", () => {
+    選択方向 = "before";
+    更新ガイド();
+  });
 
   let 選択テンプレート = null;
   content.querySelectorAll(".insert-tpl-btn").forEach(btn => {
@@ -379,18 +427,31 @@ function モーダル表示_割り込み挿入(基準イベント, セッショ�
     const pt = parseInt(content.querySelector("#insert-pt").value, 10) || 0;
     const state = content.querySelector("#insert-state").value;
 
-    // 前後のイベントのタイムスタンプの中間に設定して時系列を整頓
-    const 前時刻 = イベント時刻取得(基準イベント);
     const targetIdx = セッション.イベントリスト.findIndex(e => e.イベントID === 基準イベント.イベントID);
-    const 次イベント = (targetIdx !== -1 && targetIdx + 1 < セッション.イベントリスト.length)
-      ? セッション.イベントリスト[targetIdx + 1]
-      : null;
+    if (targetIdx === -1) return;
 
-    let 挿入時刻 = 前時刻 + 10;
-    if (次イベント) {
-      const 次時刻 = イベント時刻取得(次イベント);
-      if (次時刻 > 前時刻) {
-        挿入時刻 = Math.floor((前時刻 + 次時刻) / 2);
+    const 前時刻 = イベント時刻取得(基準イベント);
+    let 挿入時刻 = 前時刻;
+
+    if (選択方向 === "after") {
+      const 次イベント = (targetIdx + 1 < セッション.イベントリスト.length)
+        ? セッション.イベントリスト[targetIdx + 1]
+        : null;
+      if (次イベント) {
+        const 次時刻 = イベント時刻取得(次イベント);
+        挿入時刻 = (次時刻 > 前時刻) ? Math.floor((前時刻 + 次時刻) / 2) : 前時刻 + 10;
+      } else {
+        挿入時刻 = 前時刻 + 10;
+      }
+    } else {
+      const 前のイベント = (targetIdx > 0)
+        ? セッション.イベントリスト[targetIdx - 1]
+        : null;
+      if (前のイベント) {
+        const 前の時刻 = イベント時刻取得(前のイベント);
+        挿入時刻 = (前時刻 > 前の時刻) ? Math.floor((前の時刻 + 前時刻) / 2) : 前時刻 - 10;
+      } else {
+        挿入時刻 = 前時刻 - 10;
       }
     }
 
@@ -406,6 +467,11 @@ function モーダル表示_割り込み挿入(基準イベント, セッショ�
       詳細
     });
     新規イベント.タイムスタンプ = 挿入時刻;
+
+    // 挿入実行
+    const insertIndex = 選択方向 === "after" ? targetIdx + 1 : targetIdx;
+    セッション.イベントリスト.splice(insertIndex, 0, 新規イベント);
+    セッション.イベントリスト.forEach((e, idx) => { e.連番 = idx + 1; });
 
     overlay.classList.remove("active");
     onInsert(新規イベント);

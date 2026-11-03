@@ -378,13 +378,14 @@ function セットアップ_イベントリスナー(コンテナ, 初期G, 初�
     モーダル表示_示唆演出_リッチ(現在G, 現在pt, onAddEvent, onUndoEvent, "tab-shisa-ed");
   });
 
-  // CZ成功（直前CZ種別を自動引き継ぎ、G数・ptを自動リセット）
+  // CZ成功（CZ結果は現在G数、AT開始は0Gリセットで記録）
   コンテナ.querySelector("#btn-cz-success")?.addEventListener("click", () => {
     振動フィードバック(50);
     const 直近CZ = [...(セッション?.イベントリスト || [])].reverse().find(e => e.種別 === イベント種別.CZ突入);
     const cz種別 = 直近CZ?.詳細?.CZ種別 || CZ種別.レミニセンス;
     const 対象CZID = 直近CZ?.イベントID;
 
+    // CZ結果イベントは現在のゲーム数で記録
     onAddEvent(シンキ_イベント作成({
       通常ゲーム数: 現在G,
       ポイント数: 現在pt,
@@ -393,14 +394,18 @@ function セットアップ_イベントリスナー(コンテナ, 初期G, 初�
       タイトル: `CZ【${cz種別}】成功！ → AT突入へ`,
       詳細: { 結果: "成功", CZ種別: cz種別, 対象CZイベントID: 対象CZID }
     }));
+
+    // AT開始イベントは必ず【0G / 0pt】で記録（データ機仕様）
     onAddEvent(シンキ_イベント作成({
-      通常ゲーム数: 現在G,
-      ポイント数: 現在pt,
+      通常ゲーム数: 0,
+      ポイント数: 0,
       状態: ジョウタイ.AT中,
       種別: イベント種別.AT開始,
       タイトル: `AT開始 (${cz種別}突破)`,
       詳細: { 契機: トウセン_ケイキ.CZ突破, CZ種別: cz種別, 突破CZ種別: cz種別 }
     }));
+
+    // 画面のG数・ptも0にリセット
     リセットGP();
   });
 
@@ -451,7 +456,7 @@ function セットアップ_イベントリスナー(コンテナ, 初期G, 初�
     });
   });
 
-  // 引き戻し成功
+  // 引き戻し成功（判定は現在G数、AT開始は0Gリセットで記録）
   コンテナ.querySelector("#btn-hikimodoshi-success")?.addEventListener("click", () => {
     振動フィードバック(50);
     onAddEvent(シンキ_イベント作成({
@@ -462,14 +467,17 @@ function セットアップ_イベントリスナー(コンテナ, 初期G, 初�
       タイトル: "引き戻し成功！",
       詳細: { 結果: ヒキモドシ_ケッカ.成功 }
     }));
+
+    // AT開始イベントは必ず【0G / 0pt】で記録（データ機仕様）
     onAddEvent(シンキ_イベント作成({
-      通常ゲーム数: 現在G,
-      ポイント数: 現在pt,
+      通常ゲーム数: 0,
+      ポイント数: 0,
       状態: ジョウタイ.AT中,
       種別: イベント種別.AT開始,
       タイトル: "AT開始 (引き戻し当選)",
       詳細: { 契機: トウセン_ケイキ.引き戻し }
     }));
+
     リセットGP();
   });
 
@@ -1188,81 +1196,121 @@ function モーダル表示_CZ突入(g, pt, onAdd) {
 }
 
 function モーダル表示_AT直撃(g, pt, onAdd) {
-  const ゾーン一覧 = ["50G", "100G", "150G", "200G", "250G", "300G", "400G", "500G", "600G"];
-  let 推定ゾーン = "100G";
-  if (g <= 75) 推定ゾーン = "50G";
-  else if (g <= 125) 推定ゾーン = "100G";
-  else if (g <= 175) 推定ゾーン = "150G";
-  else if (g <= 225) 推定ゾーン = "200G";
-  else if (g <= 275) 推定ゾーン = "250G";
-  else if (g <= 350) 推定ゾーン = "300G";
-  else if (g <= 450) 推定ゾーン = "400G";
-  else if (g <= 550) 推定ゾーン = "500G";
-  else 推定ゾーン = "600G";
+  const ptZones = [50, 100, 150, 200, 250, 300, 400, 500, 600];
+  let 推定pt = pt > 0 ? pt : (g > 0 ? g : 100);
 
   const html = `
     <div class="modal-header">
-      <div class="modal-title">👑 AT直撃 / AT間天井 / エピボ</div>
+      <div class="modal-title">👑 AT直撃 / エピソードボーナス / 天井</div>
       <button class="btn-close" id="modal-close">&times;</button>
     </div>
-    <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:12px;">突入契機を選択してください（記録後にG数・ptは自動で0リセットされます）:</p>
+    <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:12px;">突入契機を選択してください（記録後、AT開始としてG数・ptは自動で0リセットされます）:</p>
     <div class="option-grid" style="margin-bottom:14px;gap:8px;">
       <!-- リプレイ直撃 -->
-      <button class="option-btn at-chokugeki-opt" data-type="replay" style="grid-column:span 2;padding:14px 8px;border-color:#00a8ff;background:rgba(0, 168, 255, 0.15);display:flex;flex-direction:column;align-items:center;">
+      <button class="option-btn at-chokugeki-btn" data-type="replay" style="grid-column:span 2;padding:14px 8px;border-color:#00a8ff;background:rgba(0, 168, 255, 0.15);display:flex;flex-direction:column;align-items:center;">
         <span style="font-weight:bold;font-size:1.05rem;color:#00a8ff;">🔁 リプレイ直撃AT</span>
-        <span style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">通常時リプレイからの直撃当選（特大設定差！高設定濃厚挙動）</span>
-      </button>
-
-      <!-- 規定ゾーン直撃 -->
-      <button class="option-btn at-chokugeki-opt" data-type="zone" style="grid-column:span 2;padding:12px 8px;border-color:#ff9f43;background:rgba(255, 159, 67, 0.12);display:flex;flex-direction:column;align-items:center;">
-        <span style="font-weight:bold;font-size:0.95rem;color:#ff9f43;">🎯 規定ゾーン直撃 (${推定ゾーン}ゾーン)</span>
-        <span style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">モード規定ゾーン到達によるAT直撃当選</span>
+        <span style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">通常時リプレイからのAT直撃（特大設定差！高設定濃厚挙動）</span>
       </button>
 
       <!-- エピボ（確定チェリー） -->
-      <button class="option-btn at-chokugeki-opt" data-type="epibo-cherry" style="padding:14px 8px;border-color:var(--accent-red);background:rgba(232, 65, 24, 0.15);display:flex;flex-direction:column;align-items:center;">
+      <button class="option-btn at-chokugeki-btn" data-type="epibo-cherry" style="padding:14px 8px;border-color:var(--accent-red);background:rgba(232, 65, 24, 0.15);display:flex;flex-direction:column;align-items:center;">
         <span style="font-weight:bold;font-size:0.95rem;color:#ff4757;">🍒 確定チェリー エピボ</span>
         <span style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">確定役契機エピソードボーナス</span>
       </button>
 
-      <!-- エピボ（規定ポイント） -->
-      <button class="option-btn at-chokugeki-opt" data-type="epibo-point" style="padding:14px 8px;border-color:var(--accent-purple);background:rgba(156, 136, 255, 0.15);display:flex;flex-direction:column;align-items:center;">
+      <!-- エピボ（規定ポイント当選） -->
+      <button class="option-btn at-chokugeki-btn" data-type="epibo-point" style="padding:14px 8px;border-color:var(--accent-purple);background:rgba(156, 136, 255, 0.15);display:flex;flex-direction:column;align-items:center;">
         <span style="font-weight:bold;font-size:0.95rem;color:#dcdde1;">🎬 規定pt当選 エピボ</span>
-        <span style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">規定ポイント・ゾーン到達時の一部</span>
+        <span style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">規定ポイント到達時の一部で当選</span>
       </button>
 
       <!-- AT間天井 -->
-      <button class="option-btn at-chokugeki-opt" data-type="ceiling" style="grid-column:span 2;padding:14px 8px;border-color:var(--accent-gold);display:flex;flex-direction:column;align-items:center;">
+      <button class="option-btn at-chokugeki-btn" data-type="ceiling" style="grid-column:span 2;padding:14px 8px;border-color:var(--accent-gold);display:flex;flex-direction:column;align-items:center;">
         <span style="font-weight:bold;font-size:1rem;color:var(--accent-gold);">🚨 AT間天井（最大1200G+α到達）</span>
         <span style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">AT間最大1200G消化による救済天井発動</span>
       </button>
     </div>
+
+    <!-- 規定ptエピボ選択時のポイント入力エリア -->
+    <div id="epibo-pt-container" style="display:none;background:rgba(156, 136, 255, 0.1);padding:10px;border-radius:8px;border:1px solid var(--accent-purple);margin-bottom:12px;">
+      <label class="form-label" style="color:var(--accent-purple);margin-bottom:6px;">当選規定ポイント (pt)</label>
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <input type="number" class="form-control" id="input-epibo-pt" value="${推定pt}" style="font-size:1.1rem;font-weight:bold;text-align:center;">
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:4px;">
+        ${ptZones.map(pz => `
+          <button class="option-btn pz-btn" data-pz="${pz}" style="padding:6px 2px;font-size:0.8rem;">${pz}pt</button>
+        `).join("")}
+      </div>
+    </div>
   `;
+
   開くモーダル(html, (modalEl) => {
-    modalEl.querySelectorAll(".at-chokugeki-opt").forEach(btn => {
+    let 選択タイプ = null;
+    const ptContainer = modalEl.querySelector("#epibo-pt-container");
+    const inputPt = modalEl.querySelector("#input-epibo-pt");
+
+    modalEl.querySelectorAll(".pz-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        振動フィードバック();
+        inputPt.value = btn.getAttribute("data-pz");
+      });
+    });
+
+    modalEl.querySelectorAll(".at-chokugeki-btn").forEach(btn => {
       btn.addEventListener("click", () => {
         振動フィードバック(40);
         const type = btn.getAttribute("data-type");
+        選択タイプ = type;
+
+        if (type === "epibo-point") {
+          modalEl.querySelectorAll(".at-chokugeki-btn").forEach(b => b.classList.remove("selected"));
+          btn.classList.add("selected");
+          ptContainer.style.display = "block";
+
+          let confirmBtn = modalEl.querySelector("#btn-confirm-epibo-pt");
+          if (!confirmBtn) {
+            confirmBtn = document.createElement("button");
+            confirmBtn.id = "btn-confirm-epibo-pt";
+            confirmBtn.className = "btn-block";
+            confirmBtn.style.marginTop = "10px";
+            confirmBtn.style.background = "var(--accent-purple)";
+            confirmBtn.style.color = "#fff";
+            confirmBtn.textContent = "🎬 規定ptエピボでAT開始 (0Gリセット)";
+            confirmBtn.addEventListener("click", () => {
+              const enteredPt = parseInt(inputPt.value, 10) || 推定pt;
+              // 初当たりは現在のゲーム数で記録し、画面は自動で0リセット
+              onAdd(シンキ_イベント作成({
+                通常ゲーム数: g,
+                ポイント数: pt,
+                状態: ジョウタイ.AT中,
+                種別: イベント種別.AT開始,
+                タイトル: `エピソードボーナス当選！ (${enteredPt}pt規定当選) → AT開始`,
+                詳細: { 当選契機: "規定ポイント", 契機: "規定ポイント", 当選pt: enteredPt, エピソードボーナス: true }
+              }));
+              閉じるモーダル();
+            });
+            ptContainer.appendChild(confirmBtn);
+          }
+          return;
+        }
+
+        // それ以外の契機は即時記録
         let タイトル = "";
         let 詳細 = {};
 
         if (type === "replay") {
           タイトル = "AT直撃当選！ (リプレイ契機・特大設定差)";
           詳細 = { 当選契機: "リプレイ", 契機: "リプレイ", 役: "リプレイ", エピソードボーナス: false };
-        } else if (type === "zone") {
-          タイトル = `AT直撃当選！ (${推定ゾーン}ゾーン規定pt契機)`;
-          詳細 = { 当選契機: "規定ゲーム数", 契機: "規定ゲーム数", ゾーン: 推定ゾーン, エピソードボーナス: false };
         } else if (type === "epibo-cherry") {
-          タイトル = "エピソードボーナス当選！ (確定チェリー契機) → AT突入";
+          タイトル = "エピソードボーナス当選！ (確定チェリー契機) → AT開始";
           詳細 = { 当選契機: "確定チェリー", 契機: "確定チェリー", 役: "確定チェリー", エピソードボーナス: true };
-        } else if (type === "epibo-point") {
-          タイトル = `エピソードボーナス当選！ (${推定ゾーン}ゾーン規定pt契機) → AT突入`;
-          詳細 = { 当選契機: "規定ゲーム数", 契機: "規定ゲーム数", ゾーン: 推定ゾーン, エピソードボーナス: true };
         } else {
-          タイトル = "AT間天井到達！ (最大1200G+α救済発動)";
+          タイトル = "AT間天井到達！ (最大1200G+α救済発動) → AT開始";
           詳細 = { 当選契機: トウセン_ケイキ.天井契機, 契機: トウセン_ケイキ.天井契機, エピソードボーナス: false };
         }
 
+        // 初当たりは現在のゲーム数で記録し、画面は自動で0リセット
         onAdd(シンキ_イベント作成({
           通常ゲーム数: g,
           ポイント数: pt,
@@ -1793,18 +1841,23 @@ function モーダル表示_AT終了(g, pt, onAdd) {
     </div>
     <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:8px;">終了画面を選択してください:</p>
     <div class="option-grid" style="grid-template-columns:1fr;gap:6px;max-height:40vh;overflow-y:auto;">
-      ${screens.map(s => `
-        <button class="option-btn at-screen-opt" data-screen="${s.画面名}" style="text-align:left;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-weight:bold;">${s.画面名}</span>
-          <span style="font-size:0.75rem;color:var(--text-muted);">${s.示唆内容}</span>
-        </button>
-      `).join("")}
+      ${screens.map((s, idx) => {
+        const name = s.キャラメイ || s.キャラ名 || s.画面名 || `画面#${idx+1}`;
+        const shisa = s.シサナイヨウ || s.示唆内容 || s.シサクブン || "";
+        return `
+          <button class="option-btn at-screen-opt" data-screen="${name}" style="text-align:left;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-weight:bold;">${name}</span>
+            <span style="font-size:0.75rem;color:var(--text-muted);">${shisa}</span>
+          </button>
+        `;
+      }).join("")}
     </div>
   `;
   開くモーダル(html, (modalEl) => {
-    let 選択画面 = screens[0].画面名;
+    const firstName = screens[0].キャラメイ || screens[0].キャラ名 || screens[0].画面名 || "金木研";
+    let 選択画面 = firstName;
     const btns = modalEl.querySelectorAll(".at-screen-opt");
-    btns[0].classList.add("selected");
+    if (btns.length > 0) btns[0].classList.add("selected");
 
     btns.forEach(b => {
       b.addEventListener("click", () => {
@@ -1922,8 +1975,13 @@ function モーダル表示_ゾーン前兆_新(g, pt, onAdd, onResetGP) {
       <button class="btn-close" id="modal-close">&times;</button>
     </div>
     
-    <div class="form-group" style="margin-bottom:12px;">
-      <label class="form-label">対象ゾーンを選択</label>
+    <div class="form-group" style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <label class="form-label" style="margin:0;">対象ゾーンを選択</label>
+        <button id="btn-toggle-matrix-table" type="button" style="background:rgba(255,255,255,0.08);border:1px solid #7f8fa6;border-radius:4px;padding:3px 8px;font-size:0.75rem;color:var(--accent-gold);cursor:pointer;">
+          📊 モード表を表示
+        </button>
+      </div>
       <div class="option-grid" id="zone-select-grid" style="grid-template-columns:repeat(3, 1fr);gap:6px;">
         ${ゾーン一覧.map(z => `
           <button class="option-btn zone-btn ${z === 選択ゾーン ? 'selected' : ''}" data-zone="${z}" style="padding:10px 4px;font-size:0.9rem;font-weight:bold;">
@@ -1933,6 +1991,105 @@ function モーダル表示_ゾーン前兆_新(g, pt, onAdd, onResetGP) {
       </div>
       <div id="zone-hint-box" style="margin-top:6px;font-size:0.75rem;color:var(--accent-gold);background:rgba(255,255,255,0.05);padding:6px 8px;border-radius:4px;">
         ${モード_規定ゲーム数_マトリクス[選択ゾーン]?.解説 || ""}
+      </div>
+    </div>
+
+    <!-- 添付画像「モードと規定ゲーム数」完全再現テーブル（折りたたみ表示可能） -->
+    <div id="matrix-table-container" style="display:none;background:#1e272e;border:1px solid #485460;border-radius:6px;padding:6px;margin-bottom:12px;overflow-x:auto;">
+      <div style="font-size:0.8rem;font-weight:bold;color:#f5f6fa;text-align:center;margin-bottom:4px;letter-spacing:1px;">
+        【モードと規定ゲーム数 解析対応表】
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:0.72rem;text-align:center;line-height:1.2;">
+        <thead>
+          <tr style="background:#b71540;color:#fff;font-weight:bold;">
+            <th style="padding:4px 2px;border:1px solid #353b48;">G数</th>
+            <th style="padding:4px 2px;border:1px solid #353b48;">通常A</th>
+            <th style="padding:4px 2px;border:1px solid #353b48;">通常B</th>
+            <th style="padding:4px 2px;border:1px solid #353b48;">通常C</th>
+            <th style="padding:4px 2px;border:1px solid #353b48;">チャンス</th>
+            <th style="padding:4px 2px;border:1px solid #353b48;">天国準備</th>
+            <th style="padding:4px 2px;border:1px solid #353b48;">天国</th>
+          </tr>
+        </thead>
+        <tbody id="matrix-tbody">
+          <tr data-row-zone="50G">
+            <td style="font-weight:bold;background:#2f3640;color:#f5f6fa;padding:4px 2px;border:1px solid #353b48;">50G</td>
+            <td style="border:1px solid #353b48;">-</td><td style="border:1px solid #353b48;">-</td><td style="border:1px solid #353b48;">-</td>
+            <td style="border:1px solid #353b48;color:#f5cd79;">△</td><td style="border:1px solid #353b48;color:#f5cd79;">△</td>
+            <td style="border:1px solid #353b48;background:rgba(0,168,255,0.25);color:#00d2d3;font-weight:bold;">◯</td>
+          </tr>
+          <tr data-row-zone="100G">
+            <td style="font-weight:bold;background:#2f3640;color:#f5f6fa;padding:4px 2px;border:1px solid #353b48;">100G</td>
+            <td style="border:1px solid #353b48;">-</td>
+            <td style="border:1px solid #353b48;background:rgba(0,168,255,0.25);color:#00d2d3;font-weight:bold;">◯</td>
+            <td style="border:1px solid #353b48;background:rgba(0,168,255,0.25);color:#00d2d3;font-weight:bold;">◯</td>
+            <td style="border:1px solid #353b48;background:rgba(0,168,255,0.25);color:#00d2d3;font-weight:bold;">◯</td>
+            <td style="border:1px solid #353b48;background:rgba(0,168,255,0.25);color:#00d2d3;font-weight:bold;">◯</td>
+            <td style="border:1px solid #353b48;background:#eb2f06;color:#fff;font-weight:bold;">天井</td>
+          </tr>
+          <tr data-row-zone="150G">
+            <td style="font-weight:bold;background:#2f3640;color:#f5f6fa;padding:4px 2px;border:1px solid #353b48;">150G</td>
+            <td style="border:1px solid #353b48;">-</td><td style="border:1px solid #353b48;">-</td><td style="border:1px solid #353b48;">-</td>
+            <td style="border:1px solid #353b48;color:#f5cd79;">△</td>
+            <td style="border:1px solid #353b48;background:rgba(0,168,255,0.25);color:#00d2d3;font-weight:bold;">◯</td>
+            <td style="border:1px solid #353b48;background:#57606f;color:#a4b0be;">-</td>
+          </tr>
+          <tr data-row-zone="200G">
+            <td style="font-weight:bold;background:#2f3640;color:#f5f6fa;padding:4px 2px;border:1px solid #353b48;">200G</td>
+            <td style="border:1px solid #353b48;background:rgba(0,168,255,0.25);color:#00d2d3;font-weight:bold;">◯</td>
+            <td style="border:1px solid #353b48;">-</td>
+            <td style="border:1px solid #353b48;background:rgba(0,168,255,0.25);color:#00d2d3;font-weight:bold;">◯</td>
+            <td style="border:1px solid #353b48;background:rgba(0,168,255,0.25);color:#00d2d3;font-weight:bold;">◯</td>
+            <td style="border:1px solid #353b48;background:rgba(255,71,87,0.3);color:#ff4757;font-weight:bold;">◎</td>
+            <td style="border:1px solid #353b48;background:#57606f;color:#a4b0be;">-</td>
+          </tr>
+          <tr data-row-zone="250G">
+            <td style="font-weight:bold;background:#2f3640;color:#f5f6fa;padding:4px 2px;border:1px solid #353b48;">250G</td>
+            <td style="border:1px solid #353b48;">-</td><td style="border:1px solid #353b48;">-</td><td style="border:1px solid #353b48;">-</td>
+            <td style="border:1px solid #353b48;color:#f5cd79;">△</td>
+            <td style="border:1px solid #353b48;">-</td>
+            <td style="border:1px solid #353b48;background:#57606f;color:#a4b0be;">-</td>
+          </tr>
+          <tr data-row-zone="300G">
+            <td style="font-weight:bold;background:#2f3640;color:#f5f6fa;padding:4px 2px;border:1px solid #353b48;">300G</td>
+            <td style="border:1px solid #353b48;">-</td>
+            <td style="border:1px solid #353b48;background:rgba(0,168,255,0.25);color:#00d2d3;font-weight:bold;">◯</td>
+            <td style="border:1px solid #353b48;background:rgba(0,168,255,0.25);color:#00d2d3;font-weight:bold;">◯</td>
+            <td style="border:1px solid #353b48;background:rgba(255,71,87,0.3);color:#ff4757;font-weight:bold;">◎</td>
+            <td style="border:1px solid #353b48;background:#eb2f06;color:#fff;font-weight:bold;">天井</td>
+            <td style="border:1px solid #353b48;background:#57606f;color:#a4b0be;">-</td>
+          </tr>
+          <tr data-row-zone="400G">
+            <td style="font-weight:bold;background:#2f3640;color:#f5f6fa;padding:4px 2px;border:1px solid #353b48;">400G</td>
+            <td style="border:1px solid #353b48;background:rgba(0,168,255,0.25);color:#00d2d3;font-weight:bold;">◯</td>
+            <td style="border:1px solid #353b48;">-</td>
+            <td style="border:1px solid #353b48;background:rgba(0,168,255,0.25);color:#00d2d3;font-weight:bold;">◯</td>
+            <td style="border:1px solid #353b48;">-</td>
+            <td style="border:1px solid #353b48;background:#57606f;color:#a4b0be;">-</td>
+            <td style="border:1px solid #353b48;background:#57606f;color:#a4b0be;">-</td>
+          </tr>
+          <tr data-row-zone="500G">
+            <td style="font-weight:bold;background:#2f3640;color:#f5f6fa;padding:4px 2px;border:1px solid #353b48;">500G</td>
+            <td style="border:1px solid #353b48;">-</td>
+            <td style="border:1px solid #353b48;background:rgba(255,71,87,0.3);color:#ff4757;font-weight:bold;">◎</td>
+            <td style="border:1px solid #353b48;background:#eb2f06;color:#fff;font-weight:bold;">天井</td>
+            <td style="border:1px solid #353b48;">-</td>
+            <td style="border:1px solid #353b48;background:#57606f;color:#a4b0be;">-</td>
+            <td style="border:1px solid #353b48;background:#57606f;color:#a4b0be;">-</td>
+          </tr>
+          <tr data-row-zone="600G">
+            <td style="font-weight:bold;background:#2f3640;color:#f5f6fa;padding:4px 2px;border:1px solid #353b48;">600G</td>
+            <td style="border:1px solid #353b48;background:#eb2f06;color:#fff;font-weight:bold;">天井</td>
+            <td style="border:1px solid #353b48;background:#eb2f06;color:#fff;font-weight:bold;">天井</td>
+            <td style="border:1px solid #353b48;background:#57606f;color:#a4b0be;">-</td>
+            <td style="border:1px solid #353b48;background:#eb2f06;color:#fff;font-weight:bold;">天井</td>
+            <td style="border:1px solid #353b48;background:#57606f;color:#a4b0be;">-</td>
+            <td style="border:1px solid #353b48;background:#57606f;color:#a4b0be;">-</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="font-size:0.68rem;color:var(--text-muted);margin-top:4px;text-align:right;">
+        ※◎=大チャンス、◯=チャンス、△=前兆発生でチャンス
       </div>
     </div>
 
@@ -1950,13 +2107,39 @@ function モーダル表示_ゾーン前兆_新(g, pt, onAdd, onResetGP) {
       <button class="btn-block btn-zone-action" data-act="ゾーンCZ当選" style="background:rgba(76, 209, 55, 0.25);border:1px solid #4cd137;margin:0;padding:14px;text-align:left;font-weight:bold;">
         ⚔️ ゾーンCZ当選！ <span style="font-size:0.75rem;color:#4cd137;display:block;">（CZ当選を記録し、G数を0リセットしてCZ中へ）</span>
       </button>
-      <button class="btn-block btn-zone-action" data-act="ゾーン直撃AT当選" style="background:linear-gradient(135deg, rgba(232, 65, 24, 0.3), rgba(251, 197, 49, 0.3));border:1px solid var(--accent-red);margin:0;padding:14px;text-align:left;font-weight:bold;">
-        👑 ゾーン直撃AT当選！ <span style="font-size:0.75rem;color:var(--accent-gold);display:block;">（直撃ATを記録し、G数を0リセットしてAT中へ）</span>
+      <button class="btn-block btn-zone-action" data-act="ゾーンエピボ当選" style="background:linear-gradient(135deg, rgba(156, 136, 255, 0.3), rgba(232, 65, 24, 0.3));border:1px solid var(--accent-purple);margin:0;padding:14px;text-align:left;font-weight:bold;">
+        🎬 規定ゾーン エピソードボーナス当選！ <span style="font-size:0.75rem;color:#dcdde1;display:block;">（エピボ当選を記録し、0GリセットしてAT中へ）</span>
       </button>
     </div>
   `;
 
   開くモーダル(html, (modalEl) => {
+    const tableContainer = modalEl.querySelector("#matrix-table-container");
+    const toggleBtn = modalEl.querySelector("#btn-toggle-matrix-table");
+
+    function ハイライト行(zone) {
+      modalEl.querySelectorAll("#matrix-tbody tr").forEach(tr => {
+        if (tr.getAttribute("data-row-zone") === zone) {
+          tr.style.outline = "2px solid var(--accent-gold)";
+          tr.style.background = "rgba(255,215,0,0.15)";
+        } else {
+          tr.style.outline = "none";
+          tr.style.background = "";
+        }
+      });
+    }
+
+    if (toggleBtn && tableContainer) {
+      toggleBtn.addEventListener("click", () => {
+        振動フィードバック();
+        const isHidden = tableContainer.style.display === "none";
+        tableContainer.style.display = isHidden ? "block" : "none";
+        toggleBtn.textContent = isHidden ? "📊 モード表を閉じる" : "📊 モード表を表示";
+      });
+    }
+
+    ハイライト行(選択ゾーン);
+
     modalEl.querySelectorAll(".zone-btn").forEach(btn => {
       btn.addEventListener("click", () => {
         振動フィードバック();
@@ -1965,6 +2148,7 @@ function モーダル表示_ゾーン前兆_新(g, pt, onAdd, onResetGP) {
         選択ゾーン = btn.getAttribute("data-zone");
         const hintEl = modalEl.querySelector("#zone-hint-box");
         if (hintEl) hintEl.textContent = モード_規定ゲーム数_マトリクス[選択ゾーン]?.解説 || "";
+        ハイライト行(選択ゾーン);
       });
     });
 
@@ -1974,33 +2158,42 @@ function モーダル表示_ゾーン前兆_新(g, pt, onAdd, onResetGP) {
         const アクション = btn.getAttribute("data-act");
 
         if (アクション === "ゾーンCZ当選") {
+          // CZ突入は現在のゲーム数で記録
           onAdd(シンキ_イベント作成({
             通常ゲーム数: g,
             ポイント数: pt,
             状態: ジョウタイ.CZ中,
             種別: イベント種別.CZ突入,
             タイトル: `CZ突入 (${選択ゾーン}ゾーン契機)`,
-            詳細: { CZ種別: "レミニセンス", 当選契機: "規定ゲーム数", ゾーン: 選択ゾーン }
+            詳細: { CZ種別: "レミニセンス", 当選契機: "規定ゲーム数", ゾーン: 選択ゾーン, 前兆発生: "あり" }
           }));
           onResetGP();
-        } else if (アクション === "ゾーン直撃AT当選") {
+        } else if (アクション === "ゾーンエピボ当選") {
+          // エピボ初当たりは現在の通常ゲーム数で記録
           onAdd(シンキ_イベント作成({
             通常ゲーム数: g,
             ポイント数: pt,
             状態: ジョウタイ.AT中,
             種別: イベント種別.AT開始,
-            タイトル: `AT直撃当選！ (${選択ゾーン}ゾーン契機)`,
-            詳細: { 当選契機: "規定ゲーム数", ゾーン: 選択ゾーン }
+            タイトル: `エピソードボーナス当選！ (${選択ゾーン}ゾーン規定当選) → AT開始`,
+            詳細: { 当選契機: "規定ゲーム数", 契機: "規定ゲーム数", ゾーン: 選択ゾーン, エピソードボーナス: true }
           }));
           onResetGP();
         } else {
+          const 前兆あり = アクション !== "前兆なし";
+          const 上空あり = アクション === "前兆あり（東京上空あり）";
           onAdd(シンキ_イベント作成({
             通常ゲーム数: g,
             ポイント数: pt,
             状態: ジョウタイ.通常,
             種別: イベント種別.ゾーン前兆,
             タイトル: `【${選択ゾーン}ゾーン】${アクション}`,
-            詳細: { ゾーン: 選択ゾーン, 結果: アクション }
+            詳細: {
+              ゾーン: 選択ゾーン,
+              結果: アクション,
+              前兆発生: 前兆あり ? "あり" : "なし",
+              東京上空: 上空あり ? "あり" : "なし"
+            }
           }));
         }
         閉じるモーダル();
@@ -2060,17 +2253,23 @@ function モーダル表示_転落アイキャッチ(g, pt, onAdd) {
       <div class="modal-title">👁️ 通常転落アイキャッチ記録</div>
       <button class="btn-close" id="modal-close">&times;</button>
     </div>
-    <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:10px;">出現したアイキャッチ（キャラ・枠色）を選択してください:</p>
+    <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:10px;">出現したアイキャッチ（キャラ・背景色）を選択してください:</p>
     <div style="display:flex;flex-direction:column;gap:6px;max-height:55vh;overflow-y:auto;margin-bottom:10px;">
-      ${ecList.map(ec => `
-        <button class="option-btn ec-item-btn" data-id="${ec.アイディ}" style="display:flex;justify-content:space-between;align-items:center;padding:10px;text-align:left;">
-          <div>
-            <span style="font-weight:bold;color:#fff;font-size:0.95rem;">${ec.キャラ名}</span>
-            <span style="display:block;font-size:0.75rem;color:var(--text-muted);">${ec.タイプ || ''}</span>
-          </div>
-          <span style="font-size:0.8rem;color:var(--accent-gold);font-weight:bold;">${ec.シサナイヨウ}</span>
-        </button>
-      `).join("")}
+      ${ecList.map(ec => {
+        const name = ec.名称 || ec.キャラメイ || ec.キャラ名 || "アイキャッチ";
+        const shisa = ec.シサナイヨウ || ec.シサクブン || "";
+        const type = ec.タイプ || "";
+        const isHot = ec.当選100G以内濃厚 || shisa.includes("濃厚") || shisa.includes("大幅");
+        return `
+          <button class="option-btn ec-item-btn" data-id="${ec.アイディ}" style="display:flex;justify-content:space-between;align-items:center;padding:12px 10px;text-align:left;border-color:${isHot ? 'var(--accent-red)' : 'var(--border-color)'};">
+            <div>
+              <span style="font-weight:bold;color:#fff;font-size:0.95rem;">${name}</span>
+              <span style="display:block;font-size:0.75rem;color:var(--text-muted);">${type}</span>
+            </div>
+            <span style="font-size:0.8rem;color:${isHot ? 'var(--accent-red)' : 'var(--accent-gold)'};font-weight:bold;">${shisa}</span>
+          </button>
+        `;
+      }).join("")}
     </div>
   `;
   開くモーダル(html, (modalEl) => {
@@ -2080,13 +2279,15 @@ function モーダル表示_転落アイキャッチ(g, pt, onAdd) {
         const id = btn.getAttribute("data-id");
         const 標的 = ecList.find(e => e.アイディ === id);
         if (標的) {
+          const name = 標的.名称 || 標的.キャラメイ || 標的.キャラ名 || "アイキャッチ";
+          const shisa = 標的.シサナイヨウ || 標的.シサクブン || "";
           onAdd(シンキ_イベント作成({
             通常ゲーム数: g,
             ポイント数: pt,
             状態: ジョウタイ.引き戻し確認中,
-            種別: イベント種別.転落アイキャッチ,
-            タイトル: `アイキャッチ: ${標的.キャラ名} (${標的.シサナイヨウ})`,
-            詳細: { キャラ: 標的.キャラ名, 示唆: 標的.シサナイヨウ }
+            種別: イベント種別.示唆演出,
+            タイトル: `アイキャッチ: ${name} (${shisa})`,
+            詳細: { 演出名: "アイキャッチ", 名称: name, 示唆: shisa, 当選100G以内濃厚: 標的.当選100G以内濃厚 }
           }));
         }
         閉じるモーダル();
