@@ -380,24 +380,28 @@ function セットアップ_イベントリスナー(コンテナ, 初期G, 初�
     モーダル表示_示唆演出_リッチ(現在G, 現在pt, onAddEvent, onUndoEvent, "tab-shisa-ed");
   });
 
-  // CZ成功（記録後にG数・ptを自動リセット）
+  // CZ成功（直前CZ種別を自動引き継ぎ、G数・ptを自動リセット）
   コンテナ.querySelector("#btn-cz-success")?.addEventListener("click", () => {
     振動フィードバック(50);
+    const 直近CZ = [...(セッション?.イベントリスト || [])].reverse().find(e => e.種別 === イベント種別.CZ突入);
+    const cz種別 = 直近CZ?.詳細?.CZ種別 || CZ種別.レミニセンス;
+    const 対象CZID = 直近CZ?.イベントID;
+
     onAddEvent(シンキ_イベント作成({
       通常ゲーム数: 現在G,
       ポイント数: 現在pt,
       状態: ジョウタイ.CZ中,
       種別: イベント種別.CZ結果,
-      タイトル: "CZ成功！ → AT突入へ",
-      詳細: { 結果: "成功" }
+      タイトル: `CZ【${cz種別}】成功！ → AT突入へ`,
+      詳細: { 結果: "成功", CZ種別: cz種別, 対象CZイベントID: 対象CZID }
     }));
     onAddEvent(シンキ_イベント作成({
       通常ゲーム数: 現在G,
       ポイント数: 現在pt,
       状態: ジョウタイ.AT中,
       種別: イベント種別.AT開始,
-      タイトル: "AT開始 (CZ突破)",
-      詳細: { 契機: トウセン_ケイキ.規定ポイント }
+      タイトル: `AT開始 (${cz種別}突破)`,
+      詳細: { 契機: トウセン_ケイキ.CZ突破, CZ種別: cz種別, 突破CZ種別: cz種別 }
     }));
     リセットGP();
   });
@@ -1186,40 +1190,24 @@ function モーダル表示_CZ突入(g, pt, onAdd) {
 }
 
 function モーダル表示_AT直撃(g, pt, onAdd) {
-  const ゾーン一覧 = ["50G", "100G", "150G", "200G", "250G", "300G", "400G", "500G", "600G"];
-  let 推定ゾーン = "100G";
-  if (g <= 75) 推定ゾーン = "50G";
-  else if (g <= 125) 推定ゾーン = "100G";
-  else if (g <= 175) 推定ゾーン = "150G";
-  else if (g <= 225) 推定ゾーン = "200G";
-  else if (g <= 275) 推定ゾーン = "250G";
-  else if (g <= 350) 推定ゾーン = "300G";
-  else if (g <= 450) 推定ゾーン = "400G";
-  else if (g <= 550) 推定ゾーン = "500G";
-  else 推定ゾーン = "600G";
-
   const html = `
     <div class="modal-header">
       <div class="modal-title">👑 AT直撃 / AT間天井 / エピボ</div>
       <button class="btn-close" id="modal-close">&times;</button>
     </div>
-    <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:12px;">突入契機を選択してください（記録後、G数・ptは自動で0にリセットされます）:</p>
+    <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:12px;">突入契機を選択してください（記録後にG数・ptは自動で0にリセットされます）:</p>
     <div class="option-grid" style="margin-bottom:14px;gap:8px;">
-      <button class="option-btn at-chokugeki-opt" data-type="zone" style="grid-column:span 2;padding:14px 8px;border-color:#ff9f43;background:rgba(255, 159, 67, 0.15);display:flex;flex-direction:column;align-items:center;">
-        <span style="font-weight:bold;font-size:1.05rem;color:#ff9f43;">🎯 規定ゾーン直撃 (${推定ゾーン}ゾーン当選)</span>
-        <span style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">モード規定ゲーム数・規定ポイントからの直撃AT</span>
+      <button class="option-btn at-chokugeki-opt" data-keiki="${トウセン_ケイキ.AT直撃}" data-epibo="false" style="padding:14px 8px;display:flex;flex-direction:column;align-items:center;">
+        <span style="font-weight:bold;font-size:1rem;color:#ff6b81;">👑 レア役直撃</span>
+        <span style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">特大設定差（複数回で高設定期待度大幅UP）</span>
       </button>
-      <button class="option-btn at-chokugeki-opt" data-type="rare" style="padding:14px 8px;display:flex;flex-direction:column;align-items:center;">
-        <span style="font-weight:bold;font-size:1rem;color:#ff6b81;">👑 レア役直撃AT</span>
-        <span style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">設定差大（最高設定期待度大幅UP）</span>
+      <button class="option-btn at-chokugeki-opt" data-keiki="${トウセン_ケイキ.AT直撃}" data-epibo="true" style="padding:14px 8px;border-color:var(--accent-purple);display:flex;flex-direction:column;align-items:center;">
+        <span style="font-weight:bold;font-size:1rem;color:#dcdde1;">✨ エピソードボーナス</span>
+        <span style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">エピボ経由でAT突入</span>
       </button>
-      <button class="option-btn at-chokugeki-opt" data-type="epibo" style="padding:14px 8px;border-color:var(--accent-purple);display:flex;flex-direction:column;align-items:center;">
-        <span style="font-weight:bold;font-size:1rem;color:#dcdde1;">🎬 エピソードボーナス</span>
-        <span style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">エピボ経由AT突入</span>
-      </button>
-      <button class="option-btn at-chokugeki-opt" data-type="ceiling" style="grid-column:span 2;padding:16px 8px;border-color:var(--accent-gold);display:flex;flex-direction:column;align-items:center;">
-        <span style="font-weight:bold;font-size:1.05rem;color:var(--accent-gold);">🚨 AT間天井（最大1200G+α）</span>
-        <span style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">AT間最大1200Gによる救済天井発動</span>
+      <button class="option-btn at-chokugeki-opt" data-keiki="${トウセン_ケイキ.天井契機}" data-epibo="false" style="grid-column:span 2;padding:16px 8px;border-color:var(--accent-gold);display:flex;flex-direction:column;align-items:center;">
+        <span style="font-weight:bold;font-size:1.05rem;color:var(--accent-gold);">⏰ AT間天井（最大1200G+α到達）</span>
+        <span style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">AT間最大1200G消化による救済天井発動</span>
       </button>
     </div>
   `;
@@ -1227,23 +1215,12 @@ function モーダル表示_AT直撃(g, pt, onAdd) {
     modalEl.querySelectorAll(".at-chokugeki-opt").forEach(btn => {
       btn.addEventListener("click", () => {
         振動フィードバック(40);
-        const type = btn.getAttribute("data-type");
-        let タイトル = "";
-        let 詳細 = {};
-
-        if (type === "zone") {
-          タイトル = `AT直撃当選！ (${推定ゾーン}ゾーン規定pt契機)`;
-          詳細 = { 当選契機: "規定ゲーム数", 契機: "規定ゲーム数", ゾーン: 推定ゾーン };
-        } else if (type === "rare") {
-          タイトル = "AT直撃当選！ (レア役契機・高設定挙動)";
-          詳細 = { 当選契機: トウセン_ケイキ.AT直撃, 契機: トウセン_ケイキ.AT直撃, エピボ: false };
-        } else if (type === "epibo") {
-          タイトル = "エピソードボーナス当選！ → AT突入";
-          詳細 = { 当選契機: トウセン_ケイキ.AT直撃, 契機: トウセン_ケイキ.AT直撃, エピボ: true };
-        } else {
-          タイトル = "AT間天井到達！ (最大1200G+α救済)";
-          詳細 = { 当選契機: トウセン_ケイキ.天井契機, 契機: トウセン_ケイキ.天井契機, エピボ: false };
-        }
+        const 契機 = btn.getAttribute("data-keiki");
+        const エピボ = btn.getAttribute("data-epibo") === "true";
+        let タイトル = `AT突入 (${契機})`;
+        if (エピボ) タイトル = "エピソードボーナス突入！";
+        else if (契機 === トウセン_ケイキ.天井契機) タイトル = "AT突入（AT間天井1200G）";
+        else if (契機 === トウセン_ケイキ.AT直撃) タイトル = "AT直撃当選！";
 
         onAdd(シンキ_イベント作成({
           通常ゲーム数: g,
@@ -1251,7 +1228,7 @@ function モーダル表示_AT直撃(g, pt, onAdd) {
           状態: ジョウタイ.AT中,
           種別: イベント種別.AT開始,
           タイトル,
-          詳細
+          詳細: { 契機, エピソードボーナス: エピボ }
         }));
         閉じるモーダル();
       });
@@ -1259,6 +1236,629 @@ function モーダル表示_AT直撃(g, pt, onAdd) {
   });
 }
 
+/**
+ * 演出・示唆モーダル（ちょんぼりすた解析完全準拠リッチUI）
+ */
+function モーダル表示_示唆演出_リッチ(g, pt, onAdd, onUndo, 初期タブ = "tab-shisa-letter") {
+  const 招待状リスト = ショウタイジョウ_マスター;
+  const アイキャッチリスト = アイキャッチ_マスター;
+  const トロフィーリスト = トロフィー_マイステイ_マスター;
+  const エンディングリスト = エンディング_カード_マスター;
+
+  // 今回このモーダルで追加したカードの履歴（1枚ずつ追加）
+  const 今回追加カード = [];
+
+  const html = `
+    <div class="modal-header">
+      <div class="modal-title">💌 演出・示唆の記録 (ちょんぼりすた準拠)</div>
+      <button class="btn-close" id="modal-close">&times;</button>
+    </div>
+
+    <!-- モーダル内タブ切り替え -->
+    <div style="display:flex;gap:4px;margin-bottom:12px;overflow-x:auto;">
+      <button class="shisa-tab-btn active" data-shisa-tab="tab-shisa-letter" style="flex:1;padding:6px 4px;border-radius:4px;border:1px solid var(--border-color);background:var(--accent-red);color:#fff;font-size:0.75rem;font-weight:bold;white-space:nowrap;cursor:pointer;">✉️ 月山招待状</button>
+      <button class="shisa-tab-btn" data-shisa-tab="tab-shisa-eye" style="flex:1;padding:6px 4px;border-radius:4px;border:1px solid var(--border-color);background:var(--bg-card);color:#fff;font-size:0.75rem;font-weight:bold;white-space:nowrap;cursor:pointer;">👁️ アイキャッチ</button>
+      <button class="shisa-tab-btn" data-shisa-tab="tab-shisa-trophy" style="flex:1;padding:6px 4px;border-radius:4px;border:1px solid var(--border-color);background:var(--bg-card);color:#fff;font-size:0.75rem;font-weight:bold;white-space:nowrap;cursor:pointer;">🏆 トロフィー・枚数</button>
+      <button class="shisa-tab-btn" data-shisa-tab="tab-shisa-ed" style="flex:1;padding:6px 4px;border-radius:4px;border:1px solid var(--border-color);background:var(--bg-card);color:#fff;font-size:0.75rem;font-weight:bold;white-space:nowrap;cursor:pointer;">🎬 エンディングカード</button>
+    </div>
+
+    <!-- 1. 月山招待状セクション（最頻出の基本・規定G数を上部に配置） -->
+    <div id="tab-shisa-letter" class="shisa-tab-content" style="display:block;">
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:8px;">下2桁50Gごと（50G・150G・250G…）に出現する手紙のセリフを選択:</p>
+      
+      <!-- ① 基本セリフ（最頻出） -->
+      <div style="font-size:0.75rem;color:var(--text-muted);font-weight:bold;margin-bottom:4px;">▼ 基本セリフ（デフォルト・最頻出）</div>
+      <div style="display:flex;gap:6px;margin-bottom:12px;">
+        ${招待状リスト.filter(m => m.カテゴリ === "基本").map(m => `
+          <button class="option-btn btn-letter-select" data-id="${m.アイディ}" style="flex:1;padding:10px 6px;text-align:center;">
+            <div style="font-weight:bold;font-size:0.85rem;">「${m.セリフ}」</div>
+            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">${m.シサクブン}</div>
+          </button>
+        `).join("")}
+      </div>
+
+      <!-- ② 残り規定ゲーム数濃厚（大チャンス） -->
+      <div style="font-size:0.75rem;color:#ff6b81;font-weight:bold;margin-bottom:4px;">▼ 残り規定ゲーム数濃厚（大チャンス！）</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+        ${招待状リスト.filter(m => m.カテゴリ === "規定G数濃厚").map(m => `
+          <button class="option-btn btn-letter-select" data-id="${m.アイディ}" style="text-align:left;display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-color:${m.カラーコード || '#ff6b81'};background:rgba(255,255,255,0.03);">
+            <div>
+              <span style="font-size:0.7rem;padding:1px 5px;border-radius:3px;border:1px solid ${m.カラーコード || '#ff6b81'};color:${m.カラーコード || '#ff6b81'};margin-right:6px;">${m.カラー}</span>
+              <span style="font-weight:bold;color:#fff;">「${m.セリフ}」</span>
+            </div>
+            <span style="font-size:0.75rem;color:${m.カラーコード || '#ff6b81'};font-weight:bold;">${m.シサクブン}</span>
+          </button>
+        `).join("")}
+      </div>
+
+      <!-- ③ 時刻・ゾーン示唆・天井否定（頻出） -->
+      <div style="font-size:0.75rem;color:var(--accent-blue);font-weight:bold;margin-bottom:4px;">▼ 時刻・ゾーン示唆・天井否定（青文字など）</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+        ${招待状リスト.filter(m => m.カテゴリ === "ゾーン示唆").map(m => `
+          <button class="option-btn btn-letter-select" data-id="${m.アイディ}" style="text-align:left;display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-color:var(--accent-blue);background:rgba(0,210,211,0.04);">
+            <div>
+              <span style="font-size:0.7rem;padding:1px 5px;border-radius:3px;border:1px solid var(--accent-blue);color:var(--accent-blue);margin-right:6px;">${m.カラー}</span>
+              <span style="font-weight:bold;color:#fff;">「${m.セリフ}」</span>
+            </div>
+            <span style="font-size:0.75rem;color:var(--accent-gold);font-weight:bold;">${m.シサクブン}</span>
+          </button>
+        `).join("")}
+      </div>
+
+      <!-- ④ 設定示唆・否定・確定系（稀） -->
+      <div style="font-size:0.75rem;color:var(--accent-gold);font-weight:bold;margin-bottom:4px;">▼ 設定示唆・否定・確定（金文字・虹文字など）</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+        ${招待状リスト.filter(m => m.カテゴリ === "設定否定" || m.カテゴリ === "設定確定" || m.カテゴリ === "設定示唆").map(m => `
+          <button class="option-btn btn-letter-select" data-id="${m.アイディ}" style="text-align:left;display:flex;justify-content:space-between;align-items:center;padding:9px 10px;border-color:${m.カラーコード || 'var(--accent-gold)'};background:rgba(255,255,255,0.03);">
+            <div>
+              <span style="font-size:0.7rem;padding:1px 5px;border-radius:3px;border:1px solid ${m.カラーコード || 'var(--accent-gold)'};color:${m.カラーコード || 'var(--accent-gold)'};margin-right:6px;">${m.カラー}</span>
+              <span style="font-weight:bold;color:#fff;">「${m.セリフ}」</span>
+            </div>
+            <span style="font-size:0.75rem;color:${m.カラーコード || 'var(--accent-gold)'};font-weight:bold;">${m.シサクブン}</span>
+          </button>
+        `).join("")}
+      </div>
+
+      <!-- ⑤ その他・自由手入力ボタン -->
+      <button id="btn-custom-letter" style="width:100%;padding:8px;border-radius:6px;border:1px dashed var(--border-color);background:transparent;color:var(--text-muted);font-size:0.75rem;cursor:pointer;">
+        ✏️ 上記以外のセリフ・内容を自由入力して記録
+      </button>
+    </div>
+
+    <!-- 2. アイキャッチセクション（頻出が上、示唆・激アツは下） -->
+    <div id="tab-shisa-eye" class="shisa-tab-content" style="display:none;">
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:8px;">ステージチェンジ等で出現したアイキャッチを選択:</p>
+      
+      <div style="font-size:0.75rem;color:var(--accent-blue);font-weight:bold;margin-bottom:4px;">▼ 白背景（通常キャラ・最頻出）</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+        ${アイキャッチリスト.filter(m => m.タイプ === "白背景").map(m => `
+          <button class="option-btn btn-eye-select" data-id="${m.アイディ}" style="text-align:left;display:flex;justify-content:space-between;align-items:center;padding:8px 10px;">
+            <span style="font-weight:bold;">${m.名称}</span>
+            <span style="font-size:0.75rem;color:var(--text-muted);">${m.シサクブン}</span>
+          </button>
+        `).join("")}
+      </div>
+
+      <div style="font-size:0.75rem;color:var(--accent-red);font-weight:bold;margin-bottom:4px;">▼ 黒背景＋赫眼キャラ・次回天井示唆（激アツ）</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        ${アイキャッチリスト.filter(m => m.タイプ === "黒背景赫眼").map(m => `
+          <button class="option-btn btn-eye-select" data-id="${m.アイディ}" style="text-align:left;display:flex;justify-content:space-between;align-items:center;border-color:var(--accent-red);background:rgba(232,65,24,0.15);padding:10px;">
+            <span style="font-weight:bold;color:#fff;">${m.名称}</span>
+            <span style="font-size:0.75rem;color:var(--accent-red);font-weight:bold;">${m.シサクブン}</span>
+          </button>
+        `).join("")}
+      </div>
+    </div>
+
+    <!-- 3. トロフィー・獲得枚数セクション（頻出が上、稀なものが下） -->
+    <div id="tab-shisa-trophy" class="shisa-tab-content" style="display:none;">
+      <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:8px;">トロフィーまたは特定獲得枚数表示を選択:</p>
+      
+      <div style="font-size:0.75rem;color:var(--accent-purple);font-weight:bold;margin-bottom:4px;">▼ ナミちゃんトロフィー</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+        ${トロフィーリスト.filter(m => m.アイディ.startsWith("trophy_")).map(m => `
+          <button class="option-btn btn-trophy-select" data-id="${m.アイディ}" style="text-align:left;display:flex;justify-content:space-between;align-items:center;padding:8px 10px;">
+            <span style="font-weight:bold;">${m.名称}</span>
+            <span style="font-size:0.75rem;color:${m.最小設定 >= 4 ? 'var(--accent-gold)' : (m.最小設定 ? 'var(--accent-blue)' : 'var(--text-muted)')};font-weight:bold;">${m.シサクブン}</span>
+          </button>
+        `).join("")}
+      </div>
+
+      <div style="font-size:0.75rem;color:var(--accent-gold);font-weight:bold;margin-bottom:4px;">▼ 特定獲得枚数表示（出現時点で確定・稀）</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        ${トロフィーリスト.filter(m => m.アイディ.startsWith("maisu_")).map(m => `
+          <button class="option-btn btn-trophy-select" data-id="${m.アイディ}" style="text-align:left;display:flex;justify-content:space-between;align-items:center;border-color:var(--accent-gold);background:rgba(251,197,49,0.1);padding:10px;">
+            <span style="font-weight:bold;color:#fff;font-size:1rem;">${m.名称}</span>
+            <span style="font-size:0.8rem;color:var(--accent-gold);font-weight:bold;">${m.シサクブン}</span>
+          </button>
+        `).join("")}
+      </div>
+    </div>
+
+    <!-- 4. エンディング中カードセクション（1枚ずつ選ぶ方式・奇数偶数弱強完全網羅） -->
+    <div id="tab-shisa-ed" class="shisa-tab-content" style="display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-size:0.8rem;font-weight:bold;color:#fff;">🃏 出現カードを1枚ずつタップ</span>
+        <span style="font-size:0.7rem;color:var(--text-muted);">連続タップで複数記録可能</span>
+      </div>
+
+      <!-- カード色フィルターボタン -->
+      <div style="display:flex;gap:4px;margin-bottom:10px;overflow-x:auto;">
+        <button class="btn-ed-color-filter active" data-color="all" style="padding:4px 8px;border-radius:4px;border:1px solid var(--accent-red);background:var(--accent-red);color:#fff;font-size:0.7rem;font-weight:bold;white-space:nowrap;cursor:pointer;">すべて (${エンディングリスト.length})</button>
+        <button class="btn-ed-color-filter" data-color="白" style="padding:4px 8px;border-radius:4px;border:1px solid #dcdde1;background:rgba(255,255,255,0.08);color:#dcdde1;font-size:0.7rem;font-weight:bold;white-space:nowrap;cursor:pointer;">⚪ 白 (奇数)</button>
+        <button class="btn-ed-color-filter" data-color="青" style="padding:4px 8px;border-radius:4px;border:1px solid #00d2d3;background:rgba(0,210,211,0.08);color:#00d2d3;font-size:0.7rem;font-weight:bold;white-space:nowrap;cursor:pointer;">🔵 青 (偶数)</button>
+        <button class="btn-ed-color-filter" data-color="赤" style="padding:4px 8px;border-radius:4px;border:1px solid #ff6b81;background:rgba(255,107,129,0.08);color:#ff6b81;font-size:0.7rem;font-weight:bold;white-space:nowrap;cursor:pointer;">🔴 赤 (高設定)</button>
+        <button class="btn-ed-color-filter" data-color="特殊" style="padding:4px 8px;border-radius:4px;border:1px solid #fbc531;background:rgba(251,197,49,0.08);color:#fbc531;font-size:0.7rem;font-weight:bold;white-space:nowrap;cursor:pointer;">✨ 銅/銀/金/虹</button>
+      </div>
+
+      <!-- カード一覧（スクロールエリア） -->
+      <div id="ed-cards-container" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;max-height:36vh;overflow-y:auto;padding-right:2px;margin-bottom:10px;">
+        ${エンディングリスト.map(m => {
+          const 示唆文 = m.示唆 || m.シサクブン || "";
+          const キャラ名 = m.キャラ名 || m.キャラ || m.名称 || "";
+          const カードID = m.id || m.アイディ || "";
+          const 枠色 = m.枠色 || "白";
+          let borderColor = "#dcdde1";
+          let badgeColor = "#aaa";
+          let colorCategory = 枠色;
+          if (枠色 === "白") {
+            borderColor = "#dcdde1";
+            badgeColor = 示唆文.includes("強") ? "#ff9f43" : "#aaa";
+          } else if (枠色 === "青") {
+            borderColor = "#00d2d3";
+            badgeColor = 示唆文.includes("強") ? "#00a8ff" : "#54a0ff";
+          } else if (枠色 === "赤") {
+            borderColor = "#ff6b81";
+            badgeColor = 示唆文.includes("強") ? "#e84118" : "#ff6b81";
+          } else if (枠色 === "銅") {
+            borderColor = "#cd7f32";
+            badgeColor = "#cd7f32";
+            colorCategory = "特殊";
+          } else if (枠色 === "銀") {
+            borderColor = "#bdc3c7";
+            badgeColor = "#bdc3c7";
+            colorCategory = "特殊";
+          } else if (枠色 === "金") {
+            borderColor = "#fbc531";
+            badgeColor = "#fbc531";
+            colorCategory = "特殊";
+          } else if (枠色 === "虹") {
+            borderColor = "#9c88ff";
+            badgeColor = "#9c88ff";
+            colorCategory = "特殊";
+          }
+          return `
+            <button class="option-btn btn-ed-card-item" data-id="${カードID}" data-color-cat="${colorCategory}" style="border-color:${borderColor};padding:8px 6px;text-align:left;display:flex;flex-direction:column;justify-content:space-between;min-height:56px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+                <span style="font-size:0.65rem;padding:1px 4px;border-radius:3px;border:1px solid ${borderColor};color:#fff;">${枠色}</span>
+                <span style="font-size:0.65rem;font-weight:bold;color:${badgeColor};">${示唆文}</span>
+              </div>
+              <div style="font-weight:bold;font-size:0.85rem;color:#fff;">${キャラ名}</div>
+            </button>
+          `;
+        }).join("")}
+      </div>
+
+      <!-- 今回追加したカードのトレイ（リアルタイム表示） -->
+      <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:6px;padding:8px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <span style="font-size:0.75rem;color:var(--text-muted);font-weight:bold;">🎯 今回記録したカード（引いた順）:</span>
+          <span id="ed-history-count" style="font-size:0.75rem;color:var(--accent-blue);font-weight:bold;">0枚</span>
+        </div>
+        <div id="ed-history-chips" style="display:flex;gap:4px;flex-wrap:wrap;min-height:28px;align-items:center;">
+          <span style="font-size:0.7rem;color:var(--text-muted);font-style:italic;">カードをタップするとここに即時追加されます</span>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:6px;">
+        <button id="btn-ed-undo-last" style="flex:1;padding:10px;border-radius:6px;border:1px solid var(--border-color);background:rgba(255,255,255,0.06);color:#fff;font-size:0.8rem;cursor:pointer;">↩️ 直前の1枚を取消</button>
+        <button id="btn-ed-done" style="flex:2;padding:10px;border-radius:6px;border:none;background:var(--accent-red);color:#fff;font-size:0.85rem;font-weight:bold;cursor:pointer;">記録を完了して閉じる</button>
+      </div>
+    </div>
+  `;
+
+  開くモーダル(html, (modalEl) => {
+    // タブ切り替え処理
+    const tabBtns = modalEl.querySelectorAll(".shisa-tab-btn");
+    const tabContents = modalEl.querySelectorAll(".shisa-tab-content");
+
+    function タブ切り替え(targetId) {
+      tabBtns.forEach(b => {
+        const isTarget = b.getAttribute("data-shisa-tab") === targetId;
+        b.classList.toggle("active", isTarget);
+        b.style.background = isTarget ? "var(--accent-red)" : "var(--bg-card)";
+      });
+      tabContents.forEach(tc => {
+        tc.style.display = tc.id === targetId ? "block" : "none";
+      });
+    }
+
+    if (初期タブ && 初期タブ !== "tab-shisa-letter") {
+      タブ切り替え(初期タブ);
+    }
+
+    tabBtns.forEach(btn => {
+      btn.addEventListener("click", () => {
+        振動フィードバック();
+        const targetId = btn.getAttribute("data-shisa-tab");
+        タブ切り替え(targetId);
+      });
+    });
+
+    // 1. 月山招待状選択
+    modalEl.querySelectorAll(".btn-letter-select").forEach(btn => {
+      btn.addEventListener("click", () => {
+        振動フィードバック(40);
+        const id = btn.getAttribute("data-id");
+        const m = 招待状リスト.find(item => item.アイディ === id);
+        if (m) {
+          onAdd(シンキ_イベント作成({
+            通常ゲーム数: g,
+            ポイント数: pt,
+            状態: ジョウタイ.通常,
+            種別: イベント種別.示唆演出,
+            タイトル: `月山招待状: 「${m.セリフ}」 [${m.シサクブン}]`,
+            詳細: {
+              演出名: "月山招待状",
+              セリフ: m.セリフ,
+              示唆: m.シサクブン,
+              色: m.カラー,
+              設定否定: m.設定否定,
+              最小設定: m.最小設定
+            }
+          }));
+        }
+        閉じるモーダル();
+      });
+    });
+
+    // 1-b. 招待状 自由入力
+    modalEl.querySelector("#btn-custom-letter")?.addEventListener("click", () => {
+      振動フィードバック(40);
+      const 入力セリフ = prompt("手紙のセリフや内容を入力してください（例: 1時35分、青文字、など）:");
+      if (入力セリフ && 入力セリフ.trim()) {
+        const 入力示唆 = prompt("示唆内容がわかる場合は入力してください（空欄でも可）:", "") || "手入力記録";
+        onAdd(シンキ_イベント作成({
+          通常ゲーム数: g,
+          ポイント数: pt,
+          状態: ジョウタイ.通常,
+          種別: イベント種別.示唆演出,
+          タイトル: `月山招待状: 「${入力セリフ.trim()}」`,
+          詳細: {
+            演出名: "月山招待状",
+            セリフ: 入力セリフ.trim(),
+            示唆: 入力示唆
+          }
+        }));
+        閉じるモーダル();
+      }
+    });
+
+    // 2. アイキャッチ選択
+    modalEl.querySelectorAll(".btn-eye-select").forEach(btn => {
+      btn.addEventListener("click", () => {
+        振動フィードバック(40);
+        const id = btn.getAttribute("data-id");
+        const m = アイキャッチリスト.find(item => item.アイディ === id);
+        if (m) {
+          onAdd(シンキ_イベント作成({
+            通常ゲーム数: g,
+            ポイント数: pt,
+            状態: ジョウタイ.通常,
+            種別: イベント種別.示唆演出,
+            タイトル: `アイキャッチ: ${m.名称}`,
+            詳細: {
+              演出名: "アイキャッチ",
+              名称: m.名称,
+              示唆: m.シサクブン,
+              当選100G以内濃厚: m.当選100G以内濃厚
+            }
+          }));
+        }
+        閉じるモーダル();
+      });
+    });
+
+    // 3. トロフィー・枚数選択
+    modalEl.querySelectorAll(".btn-trophy-select").forEach(btn => {
+      btn.addEventListener("click", () => {
+        振動フィードバック(50);
+        const id = btn.getAttribute("data-id");
+        const m = トロフィーリスト.find(item => item.アイディ === id);
+        if (m) {
+          onAdd(シンキ_イベント作成({
+            通常ゲーム数: g,
+            ポイント数: pt,
+            状態: ジョウタイ.通常,
+            種別: イベント種別.示唆演出,
+            タイトル: `確定演出: ${m.名称} [${m.シサクブン}]`,
+            詳細: {
+              演出名: "トロフィー・枚数",
+              名称: m.名称,
+              示唆: m.シサクブン,
+              最小設定: m.最小設定
+            }
+          }));
+        }
+        閉じるモーダル();
+      });
+    });
+
+    // 4. エンディングカード 色別フィルター処理
+    const colorFilters = modalEl.querySelectorAll(".btn-ed-color-filter");
+    const cardItems = modalEl.querySelectorAll(".btn-ed-card-item");
+
+    colorFilters.forEach(f => {
+      f.addEventListener("click", () => {
+        振動フィードバック(20);
+        colorFilters.forEach(cf => {
+          cf.classList.remove("active");
+          cf.style.background = "transparent";
+          cf.style.borderColor = "var(--border-color)";
+        });
+        f.classList.add("active");
+        f.style.background = "var(--accent-red)";
+        f.style.borderColor = "var(--accent-red)";
+
+        const targetColor = f.getAttribute("data-color");
+        cardItems.forEach(item => {
+          const cat = item.getAttribute("data-color-cat");
+          if (targetColor === "all" || cat === targetColor) {
+            item.style.display = "flex";
+          } else {
+            item.style.display = "none";
+          }
+        });
+      });
+    });
+
+    // 4. エンディングカード 1枚ずつタップ入力
+    const historyChips = modalEl.querySelector("#ed-history-chips");
+    const historyCount = modalEl.querySelector("#ed-history-count");
+
+    function 更新獲得カードトレイ() {
+      if (今回追加カード.length === 0) {
+        historyChips.innerHTML = `<span style="font-size:0.7rem;color:var(--text-muted);font-style:italic;">カードをタップするとここに即時追加されます</span>`;
+        historyCount.textContent = "0枚";
+        return;
+      }
+      historyCount.textContent = `${今回追加カード.length}枚`;
+      historyChips.innerHTML = 今回追加カード.map((c, idx) => `
+        <span style="font-size:0.7rem;padding:2px 6px;border-radius:4px;border:1px solid ${c.枠色 === '白' ? '#fff' : (c.枠色 === '青' ? '#00d2d3' : (c.枠色 === '赤' ? '#ff6b81' : '#fbc531'))};background:rgba(255,255,255,0.08);color:#fff;display:inline-flex;align-items:center;gap:3px;">
+          <strong>#${idx + 1}</strong> ${c.キャラ名}(${c.枠色}/${c.示唆})
+        </span>
+      `).join("");
+    }
+
+    cardItems.forEach(btn => {
+      btn.addEventListener("click", () => {
+        振動フィードバック(35);
+        const id = btn.getAttribute("data-id");
+        const m = エンディングリスト.find(item => (item.id && item.id === id) || (item.アイディ && item.アイディ === id));
+        if (m) {
+          const 示唆文 = m.示唆 || m.シサクブン || "";
+          const キャラ名 = m.キャラ名 || m.キャラ || m.名称 || "";
+          const カード名 = m.カード名 || m.名称 || "";
+          const 枠色 = m.枠色 || "白";
+          const 否定 = m.設定否定;
+          const 最小 = m.最小設定;
+
+          const ev = シンキ_イベント作成({
+            通常ゲーム数: g,
+            ポイント数: pt,
+            状態: ジョウタイ.AT中,
+            種別: イベント種別.示唆演出,
+            タイトル: `EDカード: ${キャラ名} [${枠色}枠 / ${示唆文}]`,
+            詳細: {
+              演出名: "エンディングカード",
+              カードID: id,
+              カード名: カード名,
+              キャラ名: キャラ名,
+              枠色: 枠色,
+              示唆: 示唆文,
+              設定否定: 否定,
+              最小設定: 最小
+            }
+          });
+          onAdd(ev);
+          今回追加カード.push({
+            eventId: ev.イベントID,
+            キャラ名: キャラ名,
+            枠色: 枠色,
+            示唆: 示唆文
+          });
+          更新獲得カードトレイ();
+        }
+      });
+    });
+
+    // 1枚取消ボタン
+    modalEl.querySelector("#btn-ed-undo-last")?.addEventListener("click", () => {
+      if (今回追加カード.length === 0) return;
+      振動フィードバック(30);
+      const popped = 今回追加カード.pop();
+      if (popped && typeof onUndo === "function") {
+        onUndo(popped.eventId);
+      }
+      更新獲得カードトレイ();
+    });
+
+    // 完了して閉じるボタン
+    modalEl.querySelector("#btn-ed-done")?.addEventListener("click", () => {
+      振動フィードバック(20);
+      閉じるモーダル();
+    });
+  });
+}
+
+function モーダル表示_CZ失敗カード(g, pt, onAdd) {
+  const cards = CZ_プッシュカード_マスター;
+  const html = `
+    <div class="modal-header">
+      <div class="modal-title">🃏 CZ終了 PUSHカード選択</div>
+      <button class="btn-close" id="modal-close">&times;</button>
+    </div>
+    <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:8px;">PUSHボタンで出現したエンドカードを選択:</p>
+    <div style="display:flex;flex-direction:column;gap:6px;max-height:50vh;overflow-y:auto;">
+      ${cards.map(c => `
+        <button class="option-btn cz-card-opt" data-card="${c.カードメイ}" style="text-align:left;display:flex;justify-content:space-between;padding:8px 10px;">
+          <span style="font-weight:bold;">${c.カードメイ}</span>
+          <span style="font-size:0.75rem;color:var(--accent-gold);font-weight:bold;">${c.シサクブン}</span>
+        </button>
+      `).join("")}
+    </div>
+  `;
+  開くモーダル(html, (modalEl) => {
+    modalEl.querySelectorAll(".cz-card-opt").forEach(btn => {
+      btn.addEventListener("click", () => {
+        振動フィードバック();
+        const カード = btn.getAttribute("data-card");
+        onAdd(シンキ_イベント作成({
+          通常ゲーム数: g,
+          ポイント数: pt,
+          状態: ジョウタイ.通常,
+          種別: イベント種別.CZ結果,
+          タイトル: `CZ失敗 (カード: ${カード})`,
+          詳細: { 結果: "失敗", PUSHカード: カード }
+        }));
+        閉じるモーダル();
+      });
+    });
+  });
+}
+
+function モーダル表示_AT終了(g, pt, onAdd) {
+  const screens = AT_シュウリョウガメン_マスター;
+  const html = `
+    <div class="modal-header">
+      <div class="modal-title">🏁 AT終了・終了画面選択</div>
+      <button class="btn-close" id="modal-close">&times;</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">獲得枚数（※未入力の場合は空欄のままでOK）</label>
+      <input type="number" class="form-control" id="input-at-maisu" placeholder="未入力なら空欄（例: 850）" value="">
+    </div>
+    <div class="form-group">
+      <label class="form-label">サミートロフィー（出現時のみ）</label>
+      <select class="form-control" id="select-at-trophy">
+        <option value="なし">なし</option>
+        <option value="黒トロフィー">ナミちゃんトロフィー（黒 / 次回示唆）</option>
+        <option value="銅トロフィー">銅トロフィー（設定2以上濃厚）</option>
+        <option value="銀トロフィー">銀トロフィー（設定3以上濃厚）</option>
+        <option value="金トロフィー">金トロフィー（設定4以上濃厚！）</option>
+        <option value="キリントロフィー">キリントロフィー（設定5以上濃厚！！）</option>
+        <option value="虹トロフィー">虹トロフィー（設定6濃厚！！！）</option>
+      </select>
+    </div>
+    <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:8px;">終了画面を選択してください:</p>
+    <div class="option-grid" style="grid-template-columns:1fr;gap:6px;max-height:40vh;overflow-y:auto;">
+      ${screens.map(s => `
+        <button class="option-btn at-screen-opt" data-screen="${s.画面名}" style="text-align:left;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-weight:bold;">${s.画面名}</span>
+          <span style="font-size:0.75rem;color:var(--text-muted);">${s.示唆内容}</span>
+        </button>
+      `).join("")}
+    </div>
+  `;
+  開くモーダル(html, (modalEl) => {
+    let 選択画面 = screens[0].画面名;
+    const btns = modalEl.querySelectorAll(".at-screen-opt");
+    btns[0].classList.add("selected");
+
+    btns.forEach(b => {
+      b.addEventListener("click", () => {
+        振動フィードバック();
+        btns.forEach(btn => btn.classList.remove("selected"));
+        b.classList.add("selected");
+        選択画面 = b.getAttribute("data-screen");
+      });
+    });
+
+    const submitBtn = document.createElement("button");
+    submitBtn.className = "btn-block";
+    submitBtn.style.marginTop = "12px";
+    submitBtn.textContent = "AT終了を記録 → 引き戻し確認へ";
+    submitBtn.addEventListener("click", () => {
+      振動フィードバック(40);
+      const rawMaisu = modalEl.querySelector("#input-at-maisu").value.trim();
+      const maisu = (rawMaisu !== "" && !isNaN(parseInt(rawMaisu, 10)) && parseInt(rawMaisu, 10) > 0) ? parseInt(rawMaisu, 10) : null;
+      const trophy = modalEl.querySelector("#select-at-trophy").value;
+
+      onAdd(シンキ_イベント作成({
+        通常ゲーム数: g,
+        ポイント数: pt,
+        状態: ジョウタイ.AT終了,
+        種別: イベント種別.AT終了,
+        タイトル: `AT終了 (${maisu !== null ? maisu + '枚' : '獲得:未入力'} / 画面: ${選択画面})`,
+        詳細: { 獲得枚数: maisu, 終了画面: 選択画面, 未入力: maisu === null }
+      }));
+
+      if (trophy && trophy !== "なし") {
+        let 示唆 = "";
+        let minSet = 0;
+        if (trophy.includes("黒")) { 示唆 = "次回示唆（黒トロフィー）"; minSet = null; }
+        else if (trophy.includes("銅")) { 示唆 = "設定2以上濃厚"; minSet = 2; }
+        else if (trophy.includes("銀")) { 示唆 = "設定3以上濃厚"; minSet = 3; }
+        else if (trophy.includes("金")) { 示唆 = "設定4以上濃厚！"; minSet = 4; }
+        else if (trophy.includes("キリン")) { 示唆 = "設定5以上濃厚！！"; minSet = 5; }
+        else if (trophy.includes("虹")) { 示唆 = "設定6濃厚！！！"; minSet = 6; }
+
+        onAdd(シンキ_イベント作成({
+          通常ゲーム数: g,
+          ポイント数: pt,
+          状態: ジョウタイ.AT終了,
+          種別: イベント種別.確定系演出,
+          タイトル: `確定演出: ナミちゃんトロフィー（${trophy.replace("トロフィー", "")}） [${示唆}]`,
+          詳細: { 演出名: "トロフィー・枚数", 名称: `ナミちゃんトロフィー（${trophy.replace("トロフィー", "")}）`, 示唆, 最小設定: minSet }
+        }));
+      }
+
+      onAdd(シンキ_イベント作成({
+        通常ゲーム数: g,
+        ポイント数: pt,
+        状態: ジョウタイ.引き戻し確認中,
+        種別: イベント種別.引き戻し判定,
+        タイトル: "引き戻し確認開始 (32G以内)",
+        詳細: { 結果: ヒキモドシ_ケッカ.判定中 }
+      }));
+
+      閉じるモーダル();
+    });
+
+    modalEl.querySelector(".modal-header").parentNode.appendChild(submitBtn);
+  });
+}
+
+function 開くモーダル(内部HTML, コールバック) {
+  let overlay = document.getElementById("global-modal-overlay");
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.id = "global-modal-overlay";
+    overlay.className = "modal-overlay";
+    overlay.innerHTML = `<div class="modal-content" id="global-modal-content"></div>`;
+    document.body.appendChild(overlay);
+  }
+
+  const content = overlay.querySelector("#global-modal-content");
+  content.innerHTML = 内部HTML;
+  overlay.classList.add("active");
+
+  overlay.querySelector("#modal-close")?.addEventListener("click", 閉じるモーダル);
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) 閉じるモーダル();
+  });
+
+  if (コールバック) コールバック(content);
+}
+
+function 閉じるモーダル() {
+  const overlay = document.getElementById("global-modal-overlay");
+  if (overlay) overlay.classList.remove("active");
+}
+
+/**
+ * 規定G数ゾーン前兆入力モーダル（添付画像マトリクス準拠）
+ */
 function モーダル表示_ゾーン前兆_新(g, pt, onAdd, onResetGP) {
   const ゾーン一覧 = ["50G", "100G", "150G", "200G", "250G", "300G", "400G", "500G", "600G"];
   
