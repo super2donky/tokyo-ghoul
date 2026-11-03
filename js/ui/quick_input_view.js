@@ -3,8 +3,8 @@
  * スマートフォンの片手親指操作に最適化した大ボタン・最小タップ数の入力インターフェース
  */
 
-import { ジョウタイ, イベント種別, CZ種別, トウセン_ケイキ, ヒキモドシ_ケッカ, シンキ_イベント作成 } from "../models/types.js";
-import { AT_シュウリョウガメン_マスター, CZ_プッシュカード_マスター, ショウタイジョウ_マスター, アイキャッチ_マスター, トロフィー_マイステイ_マスター, エンディング_カード_マスター, ゼンチョウ_ゾーン法則_マスター, トウキョウジョウコウ_演出マスター } from "../models/master_data.js";
+import { ジョウタイ, イベント種別, CZ種別, トウセン_ケイキ, レア役_シュベツ, ゾーン_コウホ, ゾーン_ゼンチョウ_ケッカ, AT_キョドウ_シュベツ, ヒキモドシ_ケッカ, シンキ_イベント作成 } from "../models/types.js";
+import { AT_シュウリョウガメン_マスター, CZ_プッシュカード_マスター, ショウタイジョウ_マスター, アイキャッチ_マスター, トロフィー_マイステイ_マスター, エンディング_カード_マスター, ゼンチョウ_ゾーン法則_マスター, トウキョウジョウコウ_演出マスター, モード_規定ゲーム数_マトリクス } from "../models/master_data.js";
 
 /**
  * タップ時の微弱振動フィードバック
@@ -32,6 +32,10 @@ export function クイック入力_レンダリング(コンテナ, セッショ
     if (lastEv.通常ゲーム数 !== undefined) 最新G = Number(lastEv.通常ゲーム数);
     if (lastEv.ポイント数 !== undefined) 最新pt = Number(lastEv.ポイント数);
     if (lastEv.状態) 現在状態 = lastEv.状態;
+    // 精神世界は通常時の一環として扱い、パネル消滅を防ぐ
+    if (現在状態 === ジョウタイ.精神世界) {
+      現在状態 = ジョウタイ.通常;
+    }
   }
 
   const 直前イベント = (セッション && セッション.イベントリスト.length > 0)
@@ -50,29 +54,17 @@ export function クイック入力_レンダリング(コンテナ, セッショ
         </div>
       </div>
 
-      <!-- ゲーム数調整（減算・微調整ボタン付き） -->
-      <div class="stepper-bar" style="margin-bottom:6px;">
-        <span class="stepper-label">ゲーム</span>
+      <!-- ゲーム数調整（データ機感覚で増減可能・ポイント連動完全廃止） -->
+      <div class="stepper-bar">
+        <span class="stepper-label">区間G数</span>
         <span class="stepper-val" id="quick-disp-g">${最新G}G</span>
         <div class="stepper-btns">
           <button class="btn-step" data-add-g="-10" style="background:rgba(255,255,255,0.05);">-10</button>
           <button class="btn-step" data-add-g="-1" style="background:rgba(255,255,255,0.05);">-1</button>
           <button class="btn-step" data-add-g="1">+1</button>
           <button class="btn-step" data-add-g="10">+10</button>
-          <button class="btn-step" data-add-g="30">+30</button>
           <button class="btn-step" data-add-g="50">+50</button>
-        </div>
-      </div>
-
-      <!-- ポイント調整 -->
-      <div class="stepper-bar">
-        <span class="stepper-label">ポイント</span>
-        <span class="stepper-val" id="quick-disp-pt">${最新pt}pt</span>
-        <div class="stepper-btns">
-          <button class="btn-step" data-add-pt="-50" style="background:rgba(255,255,255,0.05);">-50</button>
-          <button class="btn-step" data-add-pt="50">+50</button>
-          <button class="btn-step" data-add-pt="100">+100</button>
-          <button class="btn-step" data-add-pt="200">+200</button>
+          <button class="btn-step" data-add-g="100">+100</button>
         </div>
       </div>
     </div>
@@ -88,9 +80,13 @@ export function クイック入力_レンダリング(コンテナ, セッショ
     <!-- 【通常時ボタングループ】 -->
     <div id="quick-panel-tsujo" style="display:${現在状態 === ジョウタイ.通常 ? 'block' : 'none'};">
       <div class="quick-grid">
+        <button class="btn-quick primary" id="btn-input-zone" style="grid-column:span 2;padding:16px;background:linear-gradient(135deg, rgba(0, 168, 255, 0.25), rgba(156, 136, 255, 0.25));border-color:var(--accent-blue);">
+          <span style="font-size:1.15rem;font-weight:bold;">🗼 規定G数ゾーン前兆記録</span>
+          <span class="btn-sub">50G〜600Gゾーン前兆・当否（モード推測直結）</span>
+        </button>
         <button class="btn-quick rare" id="btn-input-rare">
           <span>🍒 レア役成立</span>
-          <span class="btn-sub">弱/強チェリー・スイカ・チャンス目</span>
+          <span class="btn-sub">弱/強チェ・スイカ・チャンス目</span>
         </button>
         <button class="btn-quick rare" id="btn-input-kakugan">
           <span>👁️ 赫眼リプ</span>
@@ -98,27 +94,19 @@ export function クイック入力_レンダリング(コンテナ, セッショ
         </button>
         <button class="btn-quick primary" id="btn-input-seishin">
           <span>🌌 精神世界突入</span>
-          <span class="btn-sub">10G / 20G / 30G告知 (超重要)</span>
-        </button>
-        <button class="btn-quick primary" id="btn-input-zencho">
-          <span>🗼 前兆・東京上空</span>
-          <span class="btn-sub">100〜1000ptゾーン前兆</span>
-        </button>
-        <button class="btn-quick cz" id="btn-input-cz-entry">
-          <span>⚔️ CZ当選！</span>
-          <span class="btn-sub">レミニセンス / 大喰いの利世</span>
-        </button>
-        <button class="btn-quick at" id="btn-input-at-chokugeki">
-          <span>👑 AT直撃 / AT間天井 / エピボ</span>
-          <span class="btn-sub">レア役直撃・AT間天井(1200G)・エピボ</span>
+          <span class="btn-sub">10G / 20G / 30G (設定差大)</span>
         </button>
         <button class="btn-quick" id="btn-input-shisa" style="border-color:var(--accent-gold);background:linear-gradient(145deg, #2a2516, #252830);">
-          <span>💌 演出・示唆 (ちょんぼり)</span>
-          <span class="btn-sub">月山招待状・アイキャッチ・トロフィー</span>
+          <span>💌 演出・示唆</span>
+          <span class="btn-sub">月山招待状・アイキャッチ</span>
         </button>
-        <button class="btn-quick" id="btn-input-pt-add">
-          <span>➕ ポイント加算</span>
-          <span class="btn-sub">喰種pt / スイカ等ゾーン跨ぎ</span>
+        <button class="btn-quick cz" id="btn-input-cz-entry" style="grid-column:span 2;padding:16px;">
+          <span>⚔️ CZ当選！ (G数0リセット)</span>
+          <span class="btn-sub">スイカ/チェリー/チャンス目/ゾーン等からCZ突入</span>
+        </button>
+        <button class="btn-quick at" id="btn-input-at-chokugeki" style="grid-column:span 2;padding:14px;">
+          <span>👑 AT直撃 / エピボ / AT間天井</span>
+          <span class="btn-sub">AT直撃(G数0リセット)・AT間天井(1200G)</span>
         </button>
       </div>
     </div>
@@ -144,17 +132,21 @@ export function クイック入力_レンダリング(コンテナ, セッショ
           <span>🥩 BITES / 極BITES</span>
           <span class="btn-sub">特化ゾーン・枚数上乗せ</span>
         </button>
-        <button class="btn-quick at" id="btn-at-battle">
-          <span>🔥 バトル / 上乗せ</span>
-          <span class="btn-sub">ゲーム数・枚数上乗せ</span>
+        <button class="btn-quick at" id="btn-at-arima" style="border-color:#ff4757;background:linear-gradient(135deg, rgba(255, 71, 87, 0.2), rgba(47, 53, 66, 0.8));">
+          <span>⚔️ 有馬ジャッジメント</span>
+          <span class="btn-sub">突入 / 成功(裏覚醒) / 失敗</span>
         </button>
-        <button class="btn-quick" id="btn-at-ed-card" style="grid-column:span 2;padding:14px;border-color:var(--accent-gold);background:linear-gradient(145deg, #2a2516, #252830);">
-          <span>🎬 エンディングカード入力</span>
-          <span class="btn-sub">消化中の獲得カードを1枚ずつ即記録（弱・強・特殊完全対応）</span>
+        <button class="btn-quick at" id="btn-at-battle">
+          <span>🔥 エピボ / バトル上乗せ</span>
+          <span class="btn-sub">エピソードボーナス・直乗せ</span>
+        </button>
+        <button class="btn-quick" id="btn-at-ed-card" style="border-color:var(--accent-gold);background:linear-gradient(145deg, #2a2516, #252830);">
+          <span>🎬 EDカード入力</span>
+          <span class="btn-sub">消化中獲得カード即記録</span>
         </button>
         <button class="btn-quick primary" id="btn-at-end" style="grid-column:span 2;padding:20px;font-size:1.15rem;">
-          <span>🏁 AT終了（終了画面選択）</span>
-          <span class="btn-sub">獲得枚数・終了画面・引き戻し確認へ移行</span>
+          <span>🏁 AT終了（終了画面・獲得枚数記録）</span>
+          <span class="btn-sub">終了画面 ➡ アイキャッチ ➡ 引き戻しへ</span>
         </button>
       </div>
     </div>
@@ -162,13 +154,17 @@ export function クイック入力_レンダリング(コンテナ, セッショ
     <!-- 【引き戻し確認中ボタングループ】 -->
     <div id="quick-panel-hikimodoshi" style="display:${現在状態 === ジョウタイ.引き戻し確認中 ? 'block' : 'none'};">
       <div class="quick-grid">
+        <button class="btn-quick" id="btn-hikimodoshi-eyecatch" style="grid-column:span 2;padding:16px;border-color:var(--accent-gold);background:linear-gradient(145deg, #2a2516, #252830);">
+          <span style="font-size:1.1rem;font-weight:bold;">👁️ 通常転落アイキャッチを記録</span>
+          <span class="btn-sub">終了画面後の転落時アイキャッチ（次回モード・天井示唆）</span>
+        </button>
         <button class="btn-quick at" id="btn-hikimodoshi-success" style="grid-column:span 2;padding:20px;font-size:1.2rem;">
-          <span>🔁 引き戻し成功！ → AT再開</span>
-          <span class="btn-sub">32G前兆等からAT再突入（引き戻し率集計）</span>
+          <span>🔁 引き戻し成功！ → AT再開 (G数0リセット)</span>
+          <span class="btn-sub">32G以内AT再突入（引き戻し率集計）</span>
         </button>
         <button class="btn-quick" id="btn-hikimodoshi-fail" style="grid-column:span 2;padding:18px;">
-          <span>💨 引き戻しスルー（失敗で通常へ）</span>
-          <span class="btn-sub">通常時へ復帰</span>
+          <span>💨 引き戻しスルー（通常時へ復帰）</span>
+          <span class="btn-sub">32Gスルーで次区間通常時へ</span>
         </button>
       </div>
     </div>
@@ -354,6 +350,24 @@ function セットアップ_イベントリスナー(コンテナ, 初期G, 初�
     });
   });
 
+  // 規定G数ゾーン前兆記録（添付画像準拠）
+  コンテナ.querySelector("#btn-input-zone")?.addEventListener("click", () => {
+    振動フィードバック();
+    モーダル表示_ゾーン前兆_新(現在G, 現在pt, onAddEvent, リセットGP);
+  });
+
+  // 有馬ジャッジメント（AT中）
+  コンテナ.querySelector("#btn-at-arima")?.addEventListener("click", () => {
+    振動フィードバック();
+    モーダル表示_有馬ジャッジメント(現在G, 現在pt, onAddEvent);
+  });
+
+  // 通常転落アイキャッチ（引き戻し確認中）
+  コンテナ.querySelector("#btn-hikimodoshi-eyecatch")?.addEventListener("click", () => {
+    振動フィードバック();
+    モーダル表示_転落アイキャッチ(現在G, 現在pt, onAddEvent);
+  });
+
   // 演出・示唆（ちょんぼりすた解析完全網羅モーダル）
   コンテナ.querySelector("#btn-input-shisa")?.addEventListener("click", () => {
     振動フィードバック();
@@ -426,10 +440,13 @@ function セットアップ_イベントリスナー(コンテナ, 初期G, 初�
     }
   });
 
-  // AT終了
+  // AT終了（記録後にゲーム数を0リセットして引き戻しへ）
   コンテナ.querySelector("#btn-at-end")?.addEventListener("click", () => {
     振動フィードバック();
-    モーダル表示_AT終了(現在G, 現在pt, onAddEvent);
+    モーダル表示_AT終了(現在G, 現在pt, (ev) => {
+      onAddEvent(ev);
+      リセットGP();
+    });
   });
 
   // 引き戻し成功
@@ -454,7 +471,7 @@ function セットアップ_イベントリスナー(コンテナ, 初期G, 初�
     リセットGP();
   });
 
-  // 引き戻し失敗
+  // 引き戻し失敗（次区間の通常時へ復帰）
   コンテナ.querySelector("#btn-hikimodoshi-fail")?.addEventListener("click", () => {
     振動フィードバック();
     onAddEvent(シンキ_イベント作成({
@@ -462,9 +479,10 @@ function セットアップ_イベントリスナー(コンテナ, 初期G, 初�
       ポイント数: 現在pt,
       状態: ジョウタイ.通常,
       種別: イベント種別.引き戻し判定,
-      タイトル: "引き戻し失敗（通常時へ復帰）",
+      タイトル: "引き戻しスルー（通常時へ復帰）",
       詳細: { 結果: ヒキモドシ_ケッカ.失敗 }
     }));
+    リセットGP();
   });
 }
 
@@ -561,10 +579,10 @@ function モーダル表示_精神世界(g, pt, state, onAdd) {
         onAdd(シンキ_イベント作成({
           通常ゲーム数: g,
           ポイント数: pt,
-          状態: ジョウタイ.精神世界,
+          状態: ジョウタイ.通常,
           種別: イベント種別.精神世界突入,
           タイトル: `精神世界突入 (${告知G}G告知)`,
-          詳細: { 告知ゲーム数: 告知G }
+          詳細: { 告知ゲーム数: 告知G, 精神世界フラグ: true }
         }));
         閉じるモーダル();
       });
@@ -1601,6 +1619,17 @@ function モーダル表示_AT終了(g, pt, onAdd) {
       <label class="form-label">獲得枚数</label>
       <input type="number" class="form-control" id="input-at-maisu" placeholder="例: 850" value="0">
     </div>
+    <div class="form-group">
+      <label class="form-label">サミートロフィー（出現時のみ）</label>
+      <select class="form-control" id="select-at-trophy">
+        <option value="なし">なし</option>
+        <option value="銅トロフィー">銅トロフィー（設定2以上濃厚）</option>
+        <option value="銀トロフィー">銀トロフィー（設定3以上濃厚）</option>
+        <option value="金トロフィー">金トロフィー（設定4以上濃厚！）</option>
+        <option value="キリントロフィー">キリントロフィー（設定5以上濃厚！！）</option>
+        <option value="虹トロフィー">虹トロフィー（設定6濃厚！！！）</option>
+      </select>
+    </div>
     <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:8px;">出現したAT終了画面を選択してください:</p>
     <div style="display:flex;flex-direction:column;gap:6px;max-height:40vh;overflow-y:auto;margin-bottom:12px;">
       ${screens.map(s => `
@@ -1618,13 +1647,14 @@ function モーダル表示_AT終了(g, pt, onAdd) {
         const 画面 = btn.getAttribute("data-screen");
         const 獲得枚数 = parseInt(modalEl.querySelector("#input-at-maisu").value, 10) || 0;
 
+        const トロフィー = modalEl.querySelector("#select-at-trophy").value;
         onAdd(シンキ_イベント作成({
           通常ゲーム数: g,
           ポイント数: pt,
           状態: ジョウタイ.引き戻し確認中,
           種別: イベント種別.AT終了,
-          タイトル: `AT終了 (${獲得枚数}枚 / 画面: ${画面})`,
-          詳細: { 獲得枚数, 終了画面: 画面 }
+          タイトル: `AT終了 (${獲得枚数}枚 / 画面:${画面}${トロフィー !== 'なし' ? ' / ' + トロフィー : ''})`,
+          詳細: { 獲得枚数, 終了画面: 画面, トロフィー: トロフィー !== 'なし' ? トロフィー : null }
         }));
 
         onAdd(シンキ_イベント作成({
@@ -1667,4 +1697,202 @@ function 開くモーダル(内部HTML, コールバック) {
 function 閉じるモーダル() {
   const overlay = document.getElementById("global-modal-overlay");
   if (overlay) overlay.classList.remove("active");
+}
+
+/**
+ * 規定G数ゾーン前兆入力モーダル（添付画像マトリクス準拠）
+ */
+function モーダル表示_ゾーン前兆_新(g, pt, onAdd, onResetGP) {
+  const ゾーン一覧 = ["50G", "100G", "150G", "200G", "250G", "300G", "400G", "500G", "600G"];
+  
+  let 初期ゾーン = "100G";
+  if (g <= 75) 初期ゾーン = "50G";
+  else if (g <= 125) 初期ゾーン = "100G";
+  else if (g <= 175) 初期ゾーン = "150G";
+  else if (g <= 225) 初期ゾーン = "200G";
+  else if (g <= 275) 初期ゾーン = "250G";
+  else if (g <= 350) 初期ゾーン = "300G";
+  else if (g <= 450) 初期ゾーン = "400G";
+  else if (g <= 550) 初期ゾーン = "500G";
+  else 初期ゾーン = "600G";
+
+  let 選択ゾーン = 初期ゾーン;
+
+  const html = `
+    <div class="modal-header">
+      <div class="modal-title">🗼 規定G数ゾーン前兆記録</div>
+      <button class="btn-close" id="modal-close">&times;</button>
+    </div>
+    
+    <div class="form-group" style="margin-bottom:12px;">
+      <label class="form-label">対象ゾーンを選択</label>
+      <div class="option-grid" id="zone-select-grid" style="grid-template-columns:repeat(3, 1fr);gap:6px;">
+        ${ゾーン一覧.map(z => `
+          <button class="option-btn zone-btn ${z === 選択ゾーン ? 'selected' : ''}" data-zone="${z}" style="padding:10px 4px;font-size:0.9rem;font-weight:bold;">
+            ${z}
+          </button>
+        `).join("")}
+      </div>
+      <div id="zone-hint-box" style="margin-top:6px;font-size:0.75rem;color:var(--accent-gold);background:rgba(255,255,255,0.05);padding:6px 8px;border-radius:4px;">
+        ${モード_規定ゲーム数_マトリクス[選択ゾーン]?.解説 || ""}
+      </div>
+    </div>
+
+    <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:8px;">前兆の挙動・結果を選択（ワンタップで記録）:</p>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="btn-block btn-zone-action" data-act="前兆なし" style="background:#2d3436;border:1px solid #636e72;margin:0;padding:12px;text-align:left;">
+        ❌ 前兆なし <span style="font-size:0.75rem;color:var(--text-muted);display:block;">（ガセ前兆すら発生せず）</span>
+      </button>
+      <button class="btn-block btn-zone-action" data-act="前兆あり（東京上空なし）" style="background:rgba(255, 159, 67, 0.2);border:1px solid #ff9f43;margin:0;padding:12px;text-align:left;">
+        ⚠️ 前兆あり（東京上空なし） <span style="font-size:0.75rem;color:var(--text-muted);display:block;">（ガセ前兆発生・通常ステージのまま）</span>
+      </button>
+      <button class="btn-block btn-zone-action" data-act="前兆あり（東京上空あり）" style="background:rgba(0, 168, 255, 0.2);border:1px solid var(--accent-blue);margin:0;padding:12px;text-align:left;">
+        🗼 前兆あり（東京上空あり） <span style="font-size:0.75rem;color:var(--text-muted);display:block;">（東京上空ステージ移行・高期待度ガセ）</span>
+      </button>
+      <button class="btn-block btn-zone-action" data-act="ゾーンCZ当選" style="background:rgba(76, 209, 55, 0.25);border:1px solid #4cd137;margin:0;padding:14px;text-align:left;font-weight:bold;">
+        ⚔️ ゾーンCZ当選！ <span style="font-size:0.75rem;color:#4cd137;display:block;">（CZ当選を記録し、G数を0リセットしてCZ中へ）</span>
+      </button>
+      <button class="btn-block btn-zone-action" data-act="ゾーン直撃AT当選" style="background:linear-gradient(135deg, rgba(232, 65, 24, 0.3), rgba(251, 197, 49, 0.3));border:1px solid var(--accent-red);margin:0;padding:14px;text-align:left;font-weight:bold;">
+        👑 ゾーン直撃AT当選！ <span style="font-size:0.75rem;color:var(--accent-gold);display:block;">（直撃ATを記録し、G数を0リセットしてAT中へ）</span>
+      </button>
+    </div>
+  `;
+
+  開くモーダル(html, (modalEl) => {
+    modalEl.querySelectorAll(".zone-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        振動フィードバック();
+        modalEl.querySelectorAll(".zone-btn").forEach(b => b.classList.remove("selected"));
+        btn.classList.add("selected");
+        選択ゾーン = btn.getAttribute("data-zone");
+        const hintEl = modalEl.querySelector("#zone-hint-box");
+        if (hintEl) hintEl.textContent = モード_規定ゲーム数_マトリクス[選択ゾーン]?.解説 || "";
+      });
+    });
+
+    modalEl.querySelectorAll(".btn-zone-action").forEach(btn => {
+      btn.addEventListener("click", () => {
+        振動フィードバック();
+        const アクション = btn.getAttribute("data-act");
+
+        if (アクション === "ゾーンCZ当選") {
+          onAdd(シンキ_イベント作成({
+            通常ゲーム数: g,
+            ポイント数: pt,
+            状態: ジョウタイ.CZ中,
+            種別: イベント種別.CZ突入,
+            タイトル: `CZ突入 (${選択ゾーン}ゾーン契機)`,
+            詳細: { CZ種別: "レミニセンス", 当選契機: "規定ゲーム数", ゾーン: 選択ゾーン }
+          }));
+          onResetGP();
+        } else if (アクション === "ゾーン直撃AT当選") {
+          onAdd(シンキ_イベント作成({
+            通常ゲーム数: g,
+            ポイント数: pt,
+            状態: ジョウタイ.AT中,
+            種別: イベント種別.AT開始,
+            タイトル: `AT直撃当選！ (${選択ゾーン}ゾーン契機)`,
+            詳細: { 当選契機: "規定ゲーム数", ゾーン: 選択ゾーン }
+          }));
+          onResetGP();
+        } else {
+          onAdd(シンキ_イベント作成({
+            通常ゲーム数: g,
+            ポイント数: pt,
+            状態: ジョウタイ.通常,
+            種別: イベント種別.ゾーン前兆,
+            タイトル: `【${選択ゾーン}ゾーン】${アクション}`,
+            詳細: { ゾーン: 選択ゾーン, 結果: アクション }
+          }));
+        }
+        閉じるモーダル();
+      });
+    });
+  });
+}
+
+/**
+ * 有馬ジャッジメント入力モーダル
+ */
+function モーダル表示_有馬ジャッジメント(g, pt, onAdd) {
+  const html = `
+    <div class="modal-header">
+      <div class="modal-title">⚔️ 有馬ジャッジメント</div>
+      <button class="btn-close" id="modal-close">&times;</button>
+    </div>
+    <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;">有馬ジャッジメントの挙動・結果を選択してください:</p>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <button class="btn-block btn-arima-opt" data-result="成功" style="background:linear-gradient(135deg, #e84118, #fbc531);margin:0;padding:16px;font-size:1.1rem;font-weight:bold;color:#000;">
+        🎉 成功！ → 裏覚醒へ！
+      </button>
+      <button class="btn-block btn-arima-opt" data-result="失敗" style="background:#2d3436;border:1px solid var(--border-color);margin:0;padding:14px;">
+        ❌ 失敗（AT継続または終了）
+      </button>
+      <button class="btn-block btn-arima-opt" data-result="突入のみ" style="background:rgba(255,255,255,0.05);border:1px solid var(--border-color);margin:0;padding:10px;font-size:0.85rem;">
+        ⚡ 突入のみ記録（消化中）
+      </button>
+    </div>
+  `;
+  開くモーダル(html, (modalEl) => {
+    modalEl.querySelectorAll(".btn-arima-opt").forEach(btn => {
+      btn.addEventListener("click", () => {
+        振動フィードバック();
+        const 結果 = btn.getAttribute("data-result");
+        onAdd(シンキ_イベント作成({
+          通常ゲーム数: g,
+          ポイント数: pt,
+          状態: ジョウタイ.AT中,
+          種別: イベント種別.AT中イベント,
+          タイトル: `有馬ジャッジメント: ${結果}`,
+          詳細: { 有馬ジャッジメント: 結果 }
+        }));
+        閉じるモーダル();
+      });
+    });
+  });
+}
+
+/**
+ * 通常転落アイキャッチ入力モーダル（AT終了後）
+ */
+function モーダル表示_転落アイキャッチ(g, pt, onAdd) {
+  const ecList = アイキャッチ_マスター;
+  const html = `
+    <div class="modal-header">
+      <div class="modal-title">👁️ 通常転落アイキャッチ記録</div>
+      <button class="btn-close" id="modal-close">&times;</button>
+    </div>
+    <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:10px;">出現したアイキャッチ（キャラ・枠色）を選択してください:</p>
+    <div style="display:flex;flex-direction:column;gap:6px;max-height:55vh;overflow-y:auto;margin-bottom:10px;">
+      ${ecList.map(ec => `
+        <button class="option-btn ec-item-btn" data-id="${ec.アイディ}" style="display:flex;justify-content:space-between;align-items:center;padding:10px;text-align:left;">
+          <div>
+            <span style="font-weight:bold;color:#fff;font-size:0.95rem;">${ec.キャラ名}</span>
+            <span style="display:block;font-size:0.75rem;color:var(--text-muted);">${ec.タイプ || ''}</span>
+          </div>
+          <span style="font-size:0.8rem;color:var(--accent-gold);font-weight:bold;">${ec.シサナイヨウ}</span>
+        </button>
+      `).join("")}
+    </div>
+  `;
+  開くモーダル(html, (modalEl) => {
+    modalEl.querySelectorAll(".ec-item-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        振動フィードバック();
+        const id = btn.getAttribute("data-id");
+        const 標的 = ecList.find(e => e.アイディ === id);
+        if (標的) {
+          onAdd(シンキ_イベント作成({
+            通常ゲーム数: g,
+            ポイント数: pt,
+            状態: ジョウタイ.引き戻し確認中,
+            種別: イベント種別.転落アイキャッチ,
+            タイトル: `アイキャッチ: ${標的.キャラ名} (${標的.シサナイヨウ})`,
+            詳細: { キャラ: 標的.キャラ名, 示唆: 標的.シサナイヨウ }
+          }));
+        }
+        閉じるモーダル();
+      });
+    });
+  });
 }
