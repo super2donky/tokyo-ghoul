@@ -5,19 +5,52 @@
 
 import { イベント種別, シンキ_イベント作成 } from "../models/types.js";
 
+function イベント時刻取得(ev) {
+  if (!ev) return 0;
+  if (ev.タイムスタンプ && Number(ev.タイムスタンプ) > 0) {
+    return Number(ev.タイムスタンプ);
+  }
+  if (ev.イベントID && typeof ev.イベントID === "string" && ev.イベントID.startsWith("evt_")) {
+    const parts = ev.イベントID.split("_");
+    const t = Number(parts[1]);
+    if (!isNaN(t) && t > 0) return t;
+  }
+  return Number(ev.連番) || 0;
+}
+
+// デフォルトは「新着順（最新イベントが一番上）」
+let 表示ソート順 = "DESC"; 
+
 /**
  * 履歴画面の描画
  */
 export function 履歴画面_レンダリング(コンテナ, セッション, イベント更新コールバック) {
   if (!コンテナ) return;
 
-  // 時系列（連番・発生タイムスタンプ）順で厳格に並べる（ゲーム数で勝手に割り込ませない）
-  const イベント群 = [...セッション.イベントリスト].sort((a, b) => {
-    return (a.連番 || 0) - (b.連番 || 0) || (Number(a.タイムスタンプ) || 0) - (Number(b.タイムスタンプ) || 0);
+  // 1. まず完全に時刻順（発生時系列）でソート
+  const 時系列イベント群 = [...セッション.イベントリスト].sort((a, b) => {
+    return イベント時刻取得(a) - イベント時刻取得(b);
   });
 
+  // 2. 差分ゲーム数の計算（時系列順に計算）
+  let 前回G = 0;
+  let 表示イベント群 = 時系列イベント群.map((ev, index) => {
+    const 差分G = ev.通常ゲーム数 - 前回G;
+    前回G = ev.通常ゲーム数;
+    return {
+      元データ: ev,
+      差分G: 差分G,
+      時系列番号: index + 1
+    };
+  });
+
+  // 3. ユーザーの選択に応じて表示順を反転（DESC: 最新が上, ASC: 朝イチから）
+  if (表示ソート順 === "DESC") {
+    表示イベント群.reverse();
+  }
+
   let リストhtml = "";
-  if (イベント群.length === 0) {
+  if (表示イベント群.length === 0) {
     リストhtml = `
       <div style="text-align:center;padding:30px 10px;color:var(--text-muted);">
         <p style="font-size:1.1rem;margin-bottom:8px;">実戦履歴がまだありません</p>
@@ -25,16 +58,13 @@ export function 履歴画面_レンダリング(コンテナ, セッション, �
       </div>
     `;
   } else {
-    let 前回G = 0;
-    リストhtml = イベント群.map((ev, index) => {
+    リストhtml = 表示イベント群.map(item => {
+      const ev = item.元データ;
       let クラス名 = "";
       if (ev.種別 === イベント種別.CZ突入 || ev.種別 === イベント種別.CZ結果) クラス名 = "cz";
       else if (ev.種別 === イベント種別.AT開始 || ev.種別 === イベント種別.AT終了 || ev.種別 === イベント種別.引き戻し判定) クラス名 = "at";
       else if (ev.種別 === イベント種別.精神世界突入 || ev.種別 === イベント種別.精神世界中役) クラス名 = "seishin";
       else if (ev.種別 === イベント種別.レア役成立 || ev.種別 === イベント種別.赫眼リプ成立) クラス名 = "rare";
-
-      const 差分G = ev.通常ゲーム数 - 前回G;
-      前回G = ev.通常ゲーム数;
 
       const 詳細文字 = ev.詳細 && Object.keys(ev.詳細).length > 0
         ? Object.entries(ev.詳細).map(([k, v]) => `${k}:${typeof v === "object" ? JSON.stringify(v) : v}`).join(" / ")
@@ -45,11 +75,12 @@ export function 履歴画面_レンダリング(コンテナ, セッション, �
           <div class="timeline-meta">
             <div>
               <span class="timeline-g">${ev.通常ゲーム数}G</span>
-              ${index > 0 && 差分G > 0 ? `<div style="font-size:0.65rem;color:var(--text-muted);">+${差分G}G</div>` : ''}
+              ${item.差分G > 0 ? `<div style="font-size:0.65rem;color:var(--text-muted);">+${item.差分G}G</div>` : ''}
             </div>
             <span class="timeline-pt">${ev.ポイント数 !== undefined ? `${ev.ポイント数}pt` : ""}</span>
           </div>
           <div style="flex:1;padding:0 8px;">
+            <div style="font-size:0.7rem;color:var(--text-muted);">#${item.時系列番号}</div>
             <div class="timeline-title">${ev.タイトル}</div>
             ${詳細文字 ? `<div class="timeline-desc">${詳細文字}</div>` : ""}
           </div>
@@ -63,20 +94,31 @@ export function 履歴画面_レンダリング(コンテナ, セッション, �
   }
 
   コンテナ.innerHTML = `
-    <div class="card" style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
+    <div class="card" style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;padding:10px 12px;">
       <div>
-        <span style="font-size:0.9rem;font-weight:bold;">実戦履歴タイムライン</span>
-        <span style="font-size:0.75rem;color:var(--text-muted);margin-left:6px;">(全${イベント群.length}件)</span>
+        <span style="font-size:0.95rem;font-weight:bold;">実戦履歴タイムライン</span>
+        <span style="font-size:0.75rem;color:var(--text-muted);margin-left:6px;">(${表示イベント群.length}件)</span>
       </div>
-      <button id="btn-manual-add-event" style="background:var(--accent-red);border:none;color:#fff;border-radius:6px;padding:6px 12px;font-size:0.8rem;font-weight:bold;cursor:pointer;">
-        ＋ 任意イベント追加
-      </button>
+      <div style="display:flex;gap:6px;">
+        <button id="btn-toggle-sort" style="background:rgba(255,255,255,0.1);border:1px solid var(--border-color);color:#fff;border-radius:6px;padding:6px 10px;font-size:0.75rem;font-weight:bold;cursor:pointer;">
+          ${表示ソート順 === "DESC" ? "⬆️ 最新が上" : "⬇️ 朝イチから"}
+        </button>
+        <button id="btn-manual-add-event" style="background:var(--accent-red);border:none;color:#fff;border-radius:6px;padding:6px 10px;font-size:0.75rem;font-weight:bold;cursor:pointer;">
+          ＋ 追加
+        </button>
+      </div>
     </div>
 
     <div class="timeline-list">
       ${リストhtml}
     </div>
   `;
+
+  // ソート順切り替えボタン
+  コンテナ.querySelector("#btn-toggle-sort")?.addEventListener("click", () => {
+    表示ソート順 = (表示ソート順 === "DESC") ? "ASC" : "DESC";
+    履歴画面_レンダリング(コンテナ, セッション, イベント更新コールバック);
+  });
 
   // 削除ボタンのハンドラ
   コンテナ.querySelectorAll(".btn-delete-event").forEach(btn => {
@@ -85,7 +127,7 @@ export function 履歴画面_レンダリング(コンテナ, セッション, �
       const 標的 = セッション.イベントリスト.find(e => e.イベントID === id);
       if (!標的) return;
 
-      if (confirm(`【${標的.通常ゲーム数}G: ${標的.タイトル}】を削除しますか？\n削除後は集計値が自動再計算されます。`)) {
+      if (confirm(`【${標的.通常ゲーム数}G: ${標的.タイトル}】を削除しますか？`)) {
         セッション.イベントリスト = セッション.イベントリスト.filter(e => e.イベントID !== id);
         セッション.イベントリスト.forEach((e, idx) => { e.連番 = idx + 1; });
         イベント更新コールバック(セッション);
@@ -114,12 +156,7 @@ export function 履歴画面_レンダリング(コンテナ, セッション, �
   コンテナ.querySelector("#btn-manual-add-event")?.addEventListener("click", () => {
     モーダル表示_手動イベント追加(セッション, (新規イベント) => {
       セッション.イベントリスト.push(新規イベント);
-      セッション.イベントリスト.sort((a, b) => {
-        const tA = Number(a.タイムスタンプ) || 0;
-        const tB = Number(b.タイムスタンプ) || 0;
-        if (tA !== tB) return tA - tB;
-        return (a.連番 || 0) - (b.連番 || 0);
-      });
+      セッション.イベントリスト.sort((a, b) => イベント時刻取得(a) - イベント時刻取得(b));
       セッション.イベントリスト.forEach((e, idx) => { e.連番 = idx + 1; });
       イベント更新コールバック(セッション);
     });

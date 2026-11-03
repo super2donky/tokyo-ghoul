@@ -27,7 +27,7 @@ class アプリケーション {
     const セッションリスト = await セッション_イチラン_シュトク();
     if (セッションリスト && セッションリスト.length > 0) {
       this.現在のセッション = セッションリスト[0];
-      this.時系列正規化(this.現在のセッション);
+      await this.時系列正規化(this.現在のセッション);
     } else {
       this.現在のセッション = シンキ_セッション作成("マイホール", "001");
       await セッション_ホゾン(this.現在のセッション);
@@ -100,25 +100,31 @@ class アプリケーション {
     新イベント.連番 = (this.現在のセッション.イベントリスト.length || 0) + 1;
     if (!新イベント.タイムスタンプ) 新イベント.タイムスタンプ = Date.now();
     this.現在のセッション.イベントリスト.push(新イベント);
-    this.時系列正規化(this.現在のセッション);
+    await this.時系列正規化(this.現在のセッション);
     await セッション_ホゾン(this.現在のセッション);
     this.トースト表示(`📝 【${新イベント.通常ゲーム数}G】${新イベント.タイトル} を記録`);
     this.全画面再描画();
   }
 
-  時系列正規化(セッション) {
+  async 時系列正規化(セッション) {
     if (!セッション || !Array.isArray(セッション.イベントリスト)) return;
-    // タイムスタンプ順（ユーザーが実際に操作した本当の時系列）で正規化
-    セッション.イベントリスト.sort((a, b) => {
-      const tA = Number(a.タイムスタンプ) || 0;
-      const tB = Number(b.タイムスタンプ) || 0;
-      if (tA !== tB) return tA - tB;
-      return (a.連番 || 0) - (b.連番 || 0);
-    });
-    // 連番を1から再付与
+    function 時刻(ev) {
+      if (ev.タイムスタンプ && Number(ev.タイムスタンプ) > 0) return Number(ev.タイムスタンプ);
+      if (ev.イベントID && typeof ev.イベントID === 'string' && ev.イベントID.startsWith('evt_')) {
+        const parts = ev.イベントID.split('_');
+        const t = Number(parts[1]);
+        if (!isNaN(t) && t > 0) return t;
+      }
+      return 0;
+    }
+    // タイムスタンプ（ミリ秒）で厳格にソート（過去の狂った連番は完全無視）
+    セッション.イベントリスト.sort((a, b) => 時刻(a) - 時刻(b));
+    // 正しい時系列順に連番を1から再付与
     セッション.イベントリスト.forEach((e, idx) => {
       e.連番 = idx + 1;
     });
+    // IndexedDBにも即座に保存して永続修復
+    await セッション_ホゾン(セッション);
   }
 
   async イベント直前取り消し処理() {
