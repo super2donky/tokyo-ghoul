@@ -25,6 +25,7 @@ export const イベント種別 = {
   CZ突入: "CZ_TOUNYU",
   CZ中挙動: "CZ_ACTION",
   CZ結果: "CZ_KEKKA",
+  AT当選: "AT_TOUSEN",
   AT開始: "AT_KAISHI",
   AT中イベント: "AT_ACTION",
   AT終了: "AT_SHURYO",

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>L東京喰種 実戦記録・設定分析</title>
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#121318">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="東京喰種実戦">
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- ヘッダー -->
+    <header>
+      <div class="header-title">
+        <span>🩸 L東京喰種 実戦記録</span>
+      </div>
+      <div class="header-actions">
+        <span class="header-badge" id="pwa-status-badge" style="cursor:pointer;font-size:0.7rem;padding:3px 6px;border-radius:4px;background:rgba(255,255,255,0.1);margin-right:4px;">状態確認中...</span>
+        <span class="header-badge" id="app-version-badge">Ver 2.6</span>
+      </div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <main>
+      <!-- タブ1: 実戦ダッシュボード -->
+      <section id="view-dashboard" class="view-section active"></section>
+
+      <!-- タブ2: クイック片手入力 -->
+      <section id="view-quick-input" class="view-section"></section>
+
+      <!-- タブ3: 時系列履歴タイムライン -->
+      <section id="view-history" class="view-section"></section>
+
+      <!-- タブ4: 設定・AI連携・データ管理 -->
+      <section id="view-settings" class="view-section"></section>
+    </main>
+
+    <!-- 下部固定ボトムナビゲーションバー（親指で操作しやすい配置） -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-tab="tab-dashboard">
+        <div class="nav-icon">📊</div>
+        <div>ダッシュボード</div>
+      </button>
+      <button class="nav-item" data-tab="tab-quick-input">
+        <div class="nav-icon">⚡</div>
+        <div>クイック入力</div>
+      </button>
+      <button class="nav-item" data-tab="tab-history">
+        <div class="nav-icon">⏱️</div>
+        <div>実戦履歴</div>
+      </button>
+      <button class="nav-item" data-tab="tab-settings">
+        <div class="nav-icon">⚙️</div>
+        <div>設定・AI出力</div>
+      </button>
+    </nav>
+  </div>
+
+  <!-- トースト通知用要素 -->
+  <div id="global-toast" class="toast"></div>
+
+  <!-- モーダルウィンドウ共通オーバーレイ -->
+  <div id="global-modal-overlay" class="modal-overlay">
+    <div id="global-modal-content" class="modal-content"></div>
+  </div>
+
+  <!-- アプリケーションエントリーポイント -->
+  <script type="module" src="./js/app.js?v=20261104_1940"></script>
+</body>
+</html>

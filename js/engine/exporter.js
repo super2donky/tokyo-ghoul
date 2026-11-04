@@ -6,6 +6,7 @@
 import { シュウケイ_サンシュツ } from "./aggregator.js";
 import { モード_スイソク_サンシュツ } from "./mode_estimator.js";
 import { セッテイ_スペック } from "../models/master_data.js";
+import { イベント種別, ヒキモドシ_ケッカ } from "../models/types.js";
 
 export function ジェイソン_エクスポート(セッション) {
   const 集計 = シュウケイ_サンシュツ(セッション);

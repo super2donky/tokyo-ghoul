@@ -282,8 +282,6 @@ export function ダッシュボード_レンダリング(コンテナ, セッシ
       </div>
     </div>
   `;
-}
-
 
   // ダッシュボード内解析対応表トグル
   コンテナ.querySelector("#btn-dash-toggle-matrix")?.addEventListener("click", () => {
@@ -295,3 +293,4 @@ export function ダッシュボード_レンダリング(コンテナ, セッシ
       toggleBtn.textContent = isHidden ? "📊 解析対応表を閉じる" : "📊 解析対応表";
     }
   });
+}

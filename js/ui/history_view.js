@@ -62,7 +62,7 @@ export function 履歴画面_レンダリング(コンテナ, セッション, �
       const ev = item.元データ;
       let クラス名 = "";
       if (ev.種別 === イベント種別.CZ突入 || ev.種別 === イベント種別.CZ結果) クラス名 = "cz";
-      else if (ev.種別 === イベント種別.AT開始 || ev.種別 === イベント種別.AT終了 || ev.種別 === イベント種別.引き戻し判定) クラス名 = "at";
+      else if (ev.種別 === イベント種別.AT当選 || ev.種別 === イベント種別.AT開始 || ev.種別 === イベント種別.AT終了 || ev.種別 === イベント種別.引き戻し判定) クラス名 = "at";
       else if (ev.種別 === イベント種別.精神世界突入 || ev.種別 === イベント種別.精神世界中役) クラス名 = "seishin";
       else if (ev.種別 === イベント種別.レア役成立 || ev.種別 === イベント種別.赫眼リプ成立) クラス名 = "rare";
 
@@ -286,14 +286,14 @@ function モーダル表示_割り込み挿入(基準イベント, セッショ�
   const templates = [
     { label: "特化: BITES", title: "特化ゾーン: BITES", state: "AT中", type: イベント種別.AT中イベント, detail: { 特化種別: "BITES" } },
     { label: "特化: 極BITES", title: "特化ゾーン: 極BITES", state: "AT中", type: イベント種別.AT中イベント, detail: { 特化種別: "極BITES" } },
-    { label: "有馬ジャッジ成功", title: "有馬ジャッジメント成功！", state: "AT中", type: イベント種別.AT中イベント, detail: { 結果: "成功" } },
-    { label: "有馬ジャッジ失敗", title: "有馬ジャッジメント失敗", state: "AT中", type: イベント種別.AT中イベント, detail: { 結果: "失敗" } },
+    { label: "有馬ジャッジ成功", title: "有馬ジャッジメント成功！", state: "AT中", type: イベント種別.AT中イベント, detail: { 有馬ジャッジメント: "成功" } },
+    { label: "有馬ジャッジ失敗", title: "有馬ジャッジメント失敗", state: "AT中", type: イベント種別.AT中イベント, detail: { 有馬ジャッジメント: "失敗" } },
     { label: "スイカ成立", title: "レア役成立: スイカ", state: defaultState, type: イベント種別.レア役成立, detail: { 役: "スイカ" } },
     { label: "強チェリー成立", title: "レア役成立: 強チェリー", state: defaultState, type: イベント種別.レア役成立, detail: { 役: "強チェリー" } },
     { label: "チャンス目成立", title: "レア役成立: チャンス目", state: defaultState, type: イベント種別.レア役成立, detail: { 役: "チャンス目" } },
-    { label: "前兆あり", title: "前兆発生（ガセ含む）", state: "通常", type: イベント種別.前兆発生, detail: { 前兆発生: true } },
+    { label: "前兆あり", title: "前兆発生（ガセ含む）", state: "通常", type: イベント種別.ゾーン前兆, detail: { 前兆発生: "あり" } },
     { label: "アイキャッチ", title: "アイキャッチ確認", state: "通常", type: イベント種別.示唆演出, detail: { 演出名: "アイキャッチ" } },
-    { label: "ナミちゃんトロフィー", title: "ナミちゃんトロフィー出現", state: "AT終了", type: イベント種別.確定系演出, detail: { 演出名: "トロフィー・枚数" } }
+    { label: "ナミちゃんトロフィー", title: "ナミちゃんトロフィー出現", state: "AT中", type: イベント種別.示唆演出, detail: { 演出名: "トロフィー・枚数" } }
   ];
 
   content.innerHTML = `
