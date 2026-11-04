@@ -33,9 +33,8 @@ export function クイック入力_レンダリング(コンテナ, セッショ
     if (lastEv.ポイント数 !== undefined) 最新pt = Number(lastEv.ポイント数);
     if (lastEv.状態) 現在状態 = lastEv.状態;
     // 精神世界は通常時の一環として扱い、パネル消滅を防ぐ
-    if (現在状態 === ジョウタイ.精神世界) {
-      現在状態 = ジョウタイ.通常;
-    }
+    // 精神世界は通常時の一種（超高確ステージ）として扱う
+    // 状態自体は保持しつつ、パネルは通常時グループを表示
   }
 
   const 直前イベント = (セッション && セッション.イベントリスト.length > 0)
@@ -78,7 +77,18 @@ export function クイック入力_レンダリング(コンテナ, セッショ
     </div>
 
     <!-- 【通常時ボタングループ】 -->
-    <div id="quick-panel-tsujo" style="display:${現在状態 === ジョウタイ.通常 ? 'block' : 'none'};">
+    <div id="quick-panel-tsujo" style="display:${(現在状態 === ジョウタイ.通常 || 現在状態 === ジョウタイ.精神世界) ? 'block' : 'none'};">
+      ${現在状態 === ジョウタイ.精神世界 ? `
+        <div style="background:linear-gradient(135deg, rgba(156, 136, 255, 0.25), rgba(47, 53, 66, 0.9));border:1px solid var(--accent-purple);border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <span style="font-weight:bold;color:var(--accent-purple);font-size:0.95rem;">🌌 精神世界ステージ滞在中</span>
+            <span style="display:block;font-size:0.75rem;color:var(--text-muted);">弱レア役でのCZ当選に特大設定差！</span>
+          </div>
+          <button id="btn-end-seishin" class="btn-step" type="button" style="padding:6px 10px;font-size:0.8rem;background:rgba(255,255,255,0.1);border-color:#7f8fa6;cursor:pointer;">
+            消化終了（通常へ）
+          </button>
+        </div>
+      ` : ''}
       <div class="quick-grid">
         <button class="btn-quick primary" id="btn-input-zone" style="grid-column:span 2;padding:16px;background:linear-gradient(135deg, rgba(0, 168, 255, 0.25), rgba(156, 136, 255, 0.25));border-color:var(--accent-blue);">
           <span style="font-size:1.15rem;font-weight:bold;">🗼 規定G数ゾーン前兆記録</span>
@@ -310,6 +320,19 @@ function セットアップ_イベントリスナー(コンテナ, 初期G, 初�
   });
 
   // 精神世界突入
+    // 精神世界終了ボタン
+  コンテナ.querySelector("#btn-end-seishin")?.addEventListener("click", () => {
+    振動フィードバック();
+    onAddEvent(シンキ_イベント作成({
+      通常ゲーム数: 現在G,
+      ポイント数: 現在pt,
+      状態: ジョウタイ.通常,
+      種別: イベント種別.精神世界終了,
+      タイトル: "精神世界終了（通常ステージへ）",
+      詳細: { 精神世界フラグ: false }
+    }));
+  });
+
   コンテナ.querySelector("#btn-input-seishin")?.addEventListener("click", () => {
     振動フィードバック();
     モーダル表示_精神世界(現在G, 現在pt, 現在ステート, onAddEvent);
@@ -497,7 +520,7 @@ function セットアップ_イベントリスナー(コンテナ, 初期G, 初�
 }
 
 function モーダル表示_レア役(g, pt, state, onAdd) {
-  const options = ["弱チェリー", "強チェリー", "スイカ", "チャンス目"];
+  const options = ["弱チェリー", "スイカ", "チャンス目", "強チェリー", "確定チェリー"];
   const html = `
     <div class="modal-header">
       <div class="modal-title">🍒 レア役成立入力</div>
@@ -589,7 +612,7 @@ function モーダル表示_精神世界(g, pt, state, onAdd) {
         onAdd(シンキ_イベント作成({
           通常ゲーム数: g,
           ポイント数: pt,
-          状態: ジョウタイ.通常,
+          状態: ジョウタイ.精神世界,
           種別: イベント種別.精神世界突入,
           タイトル: `精神世界突入 (${告知G}G告知)`,
           詳細: { 告知ゲーム数: 告知G, 精神世界フラグ: true }

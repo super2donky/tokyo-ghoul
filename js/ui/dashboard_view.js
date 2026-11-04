@@ -99,14 +99,53 @@ export function ダッシュボード_レンダリング(コンテナ, セッシ
 
     <!-- モード推測速報カード -->
     <div class="card">
-      <div class="card-title">
-        <span>🧭 滞在モード推測</span>
-        <span style="font-size:0.8rem;color:var(--accent-gold);">${モード.最有力モード} ${モード.確定モード ? "【確定】" : "（推測）"}</span>
+      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <span>🧭 滞在モード推測</span>
+          <span style="font-size:0.8rem;color:var(--accent-gold);margin-left:6px;">${モード.最有力モード} ${モード.確定モード ? "【確定】" : "（推測）"}</span>
+        </div>
+        <button id="btn-dash-toggle-matrix" type="button" style="background:rgba(255,255,255,0.08);border:1px solid #7f8fa6;border-radius:4px;padding:3px 8px;font-size:0.75rem;color:var(--accent-gold);cursor:pointer;">
+          📊 解析対応表
+        </button>
       </div>
       <div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:6px;">
         ${モード.有効候補.map(c => `<span style="margin-right:8px;display:inline-block;">${c.モード名}: <strong style="color:#fff;">${c.スコア}点</strong></span>`).join("")}
       </div>
-      ${モード.警告.length > 0 ? `<div style="color:var(--text-highlight);font-size:0.8rem;">⚠️ ${モード.警告.join("<br>")}</div>` : ""}
+      ${モード.警告.length > 0 ? `<div style="color:var(--text-highlight);font-size:0.8rem;margin-bottom:6px;">⚠️ ${モード.警告.join("<br>")}</div>` : ""}
+
+      <!-- 添付画像「モードと規定ゲーム数」完全再現テーブル（ダッシュボード用） -->
+      <div id="dash-matrix-table-container" style="display:none;background:#1e272e;border:1px solid #485460;border-radius:6px;padding:6px;margin-top:8px;overflow-x:auto;">
+        <div style="font-size:0.75rem;font-weight:bold;color:#f5f6fa;text-align:center;margin-bottom:4px;">
+          【モードと規定ゲーム数 解析対応表】
+        </div>
+        <table style="width:100%;border-collapse:collapse;font-size:0.7rem;text-align:center;line-height:1.2;">
+          <thead>
+            <tr style="background:#b71540;color:#fff;font-weight:bold;">
+              <th style="padding:3px 2px;border:1px solid #353b48;">G数</th>
+              <th style="padding:3px 2px;border:1px solid #353b48;">通常A</th>
+              <th style="padding:3px 2px;border:1px solid #353b48;">通常B</th>
+              <th style="padding:3px 2px;border:1px solid #353b48;">通常C</th>
+              <th style="padding:3px 2px;border:1px solid #353b48;">チャンス</th>
+              <th style="padding:3px 2px;border:1px solid #353b48;">天国準備</th>
+              <th style="padding:3px 2px;border:1px solid #353b48;">天国</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style="font-weight:bold;background:#2f3640;color:#f5f6fa;border:1px solid #353b48;">50G</td><td style="border:1px solid #353b48;">-</td><td style="border:1px solid #353b48;">-</td><td style="border:1px solid #353b48;">-</td><td style="border:1px solid #353b48;color:#f5cd79;">△</td><td style="border:1px solid #353b48;color:#f5cd79;">△</td><td style="border:1px solid #353b48;background:rgba(0,168,255,0.25);color:#00d2d3;font-weight:bold;">◯</td></tr>
+            <tr><td style="font-weight:bold;background:#2f3640;color:#f5f6fa;border:1px solid #353b48;">100G</td><td style="border:1px solid #353b48;">-</td><td style="border:1px solid #353b48;background:rgba(0,168,255,0.25);color:#00d2d3;font-weight:bold;">◯</td><td style="border:1px solid #353b48;background:rgba(0,168,255,0.25);color:#00d2d3;font-weight:bold;">◯</td><td style="border:1px solid #353b48;background:rgba(0,168,255,0.25);color:#00d2d3;font-weight:bold;">◯</td><td style="border:1px solid #353b48;background:rgba(0,168,255,0.25);color:#00d2d3;font-weight:bold;">◯</td><td style="border:1px solid #353b48;background:#eb2f06;color:#fff;font-weight:bold;">天井</td></tr>
+            <tr><td style="font-weight:bold;background:#2f3640;color:#f5f6fa;border:1px solid #353b48;">150G</td><td style="border:1px solid #353b48;">-</td><td style="border:1px solid #353b48;">-</td><td style="border:1px solid #353b48;">-</td><td style="border:1px solid #353b48;color:#f5cd79;">△</td><td style="border:1px solid #353b48;background:rgba(0,168,255,0.25);color:#00d2d3;font-weight:bold;">◯</td><td style="border:1px solid #353b48;background:#57606f;color:#a4b0be;">-</td></tr>
+            <tr><td style="font-weight:bold;background:#2f3640;color:#f5f6fa;border:1px solid #353b48;">200G</td><td style="border:1px solid #353b48;background:rgba(0,168,255,0.25);color:#00d2d3;font-weight:bold;">◯</td><td style="border:1px solid #353b48;">-</td><td style="border:1px solid #353b48;background:rgba(0,168,255,0.25);color:#00d2d3;font-weight:bold;">◯</td><td style="border:1px solid #353b48;background:rgba(0,168,255,0.25);color:#00d2d3;font-weight:bold;">◯</td><td style="border:1px solid #353b48;background:rgba(255,71,87,0.3);color:#ff4757;font-weight:bold;">◎</td><td style="border:1px solid #353b48;background:#57606f;color:#a4b0be;">-</td></tr>
+            <tr><td style="font-weight:bold;background:#2f3640;color:#f5f6fa;border:1px solid #353b48;">250G</td><td style="border:1px solid #353b48;">-</td><td style="border:1px solid #353b48;">-</td><td style="border:1px solid #353b48;">-</td><td style="border:1px solid #353b48;color:#f5cd79;">△</td><td style="border:1px solid #353b48;">-</td><td style="border:1px solid #353b48;background:#57606f;color:#a4b0be;">-</td></tr>
+            <tr><td style="font-weight:bold;background:#2f3640;color:#f5f6fa;border:1px solid #353b48;">300G</td><td style="border:1px solid #353b48;">-</td><td style="border:1px solid #353b48;background:rgba(0,168,255,0.25);color:#00d2d3;font-weight:bold;">◯</td><td style="border:1px solid #353b48;background:rgba(0,168,255,0.25);color:#00d2d3;font-weight:bold;">◯</td><td style="border:1px solid #353b48;background:rgba(255,71,87,0.3);color:#ff4757;font-weight:bold;">◎</td><td style="border:1px solid #353b48;background:#eb2f06;color:#fff;font-weight:bold;">天井</td><td style="border:1px solid #353b48;background:#57606f;color:#a4b0be;">-</td></tr>
+            <tr><td style="font-weight:bold;background:#2f3640;color:#f5f6fa;border:1px solid #353b48;">400G</td><td style="border:1px solid #353b48;background:rgba(0,168,255,0.25);color:#00d2d3;font-weight:bold;">◯</td><td style="border:1px solid #353b48;">-</td><td style="border:1px solid #353b48;background:rgba(0,168,255,0.25);color:#00d2d3;font-weight:bold;">◯</td><td style="border:1px solid #353b48;">-</td><td style="border:1px solid #353b48;background:#57606f;color:#a4b0be;">-</td><td style="border:1px solid #353b48;background:#57606f;color:#a4b0be;">-</td></tr>
+            <tr><td style="font-weight:bold;background:#2f3640;color:#f5f6fa;border:1px solid #353b48;">500G</td><td style="border:1px solid #353b48;">-</td><td style="border:1px solid #353b48;background:rgba(255,71,87,0.3);color:#ff4757;font-weight:bold;">◎</td><td style="border:1px solid #353b48;background:#eb2f06;color:#fff;font-weight:bold;">天井</td><td style="border:1px solid #353b48;">-</td><td style="border:1px solid #353b48;background:#57606f;color:#a4b0be;">-</td><td style="border:1px solid #353b48;background:#57606f;color:#a4b0be;">-</td></tr>
+            <tr><td style="font-weight:bold;background:#2f3640;color:#f5f6fa;border:1px solid #353b48;">600G</td><td style="border:1px solid #353b48;background:#eb2f06;color:#fff;font-weight:bold;">天井</td><td style="border:1px solid #353b48;background:#eb2f06;color:#fff;font-weight:bold;">天井</td><td style="border:1px solid #353b48;background:#57606f;color:#a4b0be;">-</td><td style="border:1px solid #353b48;background:#eb2f06;color:#fff;font-weight:bold;">天井</td><td style="border:1px solid #353b48;background:#57606f;color:#a4b0be;">-</td><td style="border:1px solid #353b48;background:#57606f;color:#a4b0be;">-</td></tr>
+          </tbody>
+        </table>
+        <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px;text-align:right;">
+          ※◎=大チャンス、◯=チャンス、△=前兆発生でチャンス
+        </div>
+      </div>
     </div>
 
     <!-- 設定判別主要カウンター -->
@@ -244,3 +283,15 @@ export function ダッシュボード_レンダリング(コンテナ, セッシ
     </div>
   `;
 }
+
+
+  // ダッシュボード内解析対応表トグル
+  コンテナ.querySelector("#btn-dash-toggle-matrix")?.addEventListener("click", () => {
+    const tableContainer = コンテナ.querySelector("#dash-matrix-table-container");
+    const toggleBtn = コンテナ.querySelector("#btn-dash-toggle-matrix");
+    if (tableContainer && toggleBtn) {
+      const isHidden = tableContainer.style.display === "none";
+      tableContainer.style.display = isHidden ? "block" : "none";
+      toggleBtn.textContent = isHidden ? "📊 解析対応表を閉じる" : "📊 解析対応表";
+    }
+  });
